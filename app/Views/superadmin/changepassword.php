@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đổi mật khẩu</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../Public/Css/style.css">
+    <script src="../Public/Js/script.js"></script>
+</head>
+
+<body>
+    <div class="app-container" style="background: white;">
+
+        <div class="header-title-left">
+            Đổi mật khẩu
+        </div>
+
+        <div class="profile-card-banner" onclick="window.location.href='<?= BASE_URL ?>/superadmin/detailprofile'">
+            <img src="../icon/menuanhdaidien.png" class="profile-avatar-large">
+            <div class="profile-info">
+                <h3>Trần Thị A</h3>
+                <div class="profile-role">Cấp quản lý</div>
+                <div class="office-badge">TRỤ SỞ - HÀ NỘI</div>
+            </div>
+            <i class="fa-solid fa-chevron-right arrow-right-absolute"></i>
+        </div>
+
+        <form action="../theme/profile.html">
+
+            <div class="edit-form-group" style="margin-bottom: 20px;">
+                <div class="edit-label-row">
+                    <span>1. Mật khẩu hiện tại</span>
+                </div>
+                <div class="edit-input-box">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" placeholder="Nhập mật khẩu hiện tại">
+                </div>
+                <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
+            </div>
+
+            <div class="edit-form-group" style="margin-bottom: 20px;">
+                <div class="label-row-with-counter">
+                    <span>2. Mật khẩu mới</span>
+                </div>
+                <div class="edit-input-box">
+                    <i class="fa-solid fa-key"></i>
+                    <input type="password" placeholder="Nhập mật khẩu mới">
+                </div>
+                <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
+            </div>
+            <div class="edit-form-group" style="margin-bottom: 20px;">
+                <div class="label-row-with-counter">
+                    <span>3. Xác nhận lại mật khẩu</span>
+                </div>
+                <div class="edit-input-box">
+                    <i class="fa-solid fa-check-double"></i>
+                    <input type="password" placeholder="Nhập lại mật khẩu mới">
+                </div>
+                <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
+            </div>
+
+            <button class="btn-save-change">Lưu thay đổi</button>
+
+        </form>
+        <div id="bottom-nav-container">
+            <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
+        </div>
+    </div>
+
+</body>
+
+</html>
