@@ -26,7 +26,7 @@ try {
         'password' => password_hash('TestPass123', PASSWORD_BCRYPT),
         'ho_ten' => 'Test User',
         'nam_sinh' => '1990',
-        'email' => 'test' . rand(1000,9999) . '@example.com',
+        'email' => 'test' . rand(1000, 9999) . '@example.com',
         'gioi_tinh' => 'nam',
         'loai_tai_khoan' => 'nhan_vien',
         'quyen' => 'user',
@@ -34,7 +34,7 @@ try {
     ];
 
     // include a sample anh_cccd path to verify it's saved
-    $data['anh_cccd'] = 'uploads/test-img-' . rand(1000,9999) . '.jpg';
+    $data['anh_cccd'] = 'uploads/test-img-' . rand(1000, 9999) . '.jpg';
 
     $ok = User::createWithRole($data);
     echo 'createWithRole returned: ' . ($ok ? 'true' : 'false') . "\n";
