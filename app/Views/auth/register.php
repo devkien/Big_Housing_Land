@@ -11,6 +11,7 @@
 
 <body>
     <div class="app-container register-page">
+        <?php require_once __DIR__ . '/../partials/alert.php'; ?>
 
         <header class="register-header">
             <a href="<?= BASE_URL ?>/login" class="back-btn"><i class="fa-solid fa-chevron-left"></i></a>

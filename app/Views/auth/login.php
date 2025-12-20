@@ -35,6 +35,7 @@
 
 <body>
     <div class="app-container login-page">
+        <?php require_once __DIR__ . '/../partials/alert.php'; ?>
         <div class="login-header">
             <div class="logo-icon">
                 <img src="images/Logo.png" alt="logo">

@@ -63,7 +63,7 @@ class AuthController extends Controller
             'ho_ten'          => trim($_POST['ho_ten'] ?? ''),
             'nam_sinh'        => $_POST['nam_sinh'] ?? '',
             'dia_chi'         => trim($_POST['dia_chi'] ?? ''),
-            'gioi_tinh'       => $_POST['gioi_tinh'] ?? 'Khác',
+            'gioi_tinh'       => $_POST['gioi_tinh'] ?? 'khac',
             'email'           => trim($_POST['email'] ?? ''),
             'link_fb'         => trim($_POST['link_fb'] ?? ''),
             'ma_gioi_thieu'   => trim($_POST['ma_gioi_thieu'] ?? ''),

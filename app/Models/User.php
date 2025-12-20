@@ -35,31 +35,11 @@ class User extends Model
     public static function create($data)
     {
         $db = self::db();
-        $stmt = $db->prepare("
-            INSERT INTO users (
-                ma_nhan_su,
-                so_dien_thoai,
-                password,
-                ho_ten,
-                nam_sinh,
-                email,
-                gioi_tinh,
-                loai_tai_khoan,
-                anh_cccd
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        return $stmt->execute([
-            $data['ma_nhan_su'] ?? null,
-            $data['so_dien_thoai'],
-            $data['password'],
-            $data['ho_ten'],
-            $data['nam_sinh'],
-            $data['email'] ?? null,
-            $data['gioi_tinh'] ?? 'Khác',
-            $data['loai_tai_khoan'] ?? 'nhan_vien',
-            $data['anh_cccd'] ?? null,
-        ]);
+            // The original implementation contained a SQL typo and mismatched
+            // placeholders which could cause runtime DB errors. Delegate to the
+            // proven `createWithRole` implementation to keep a single source of
+            // truth for user creation logic.
+            return self::createWithRole($data);
     }
 
     // ===== CHECK PHONE =====
@@ -208,11 +188,13 @@ class User extends Model
                 dia_chi,
                 link_fb,
                 ma_gioi_thieu,
+                anh_cccd,
+                trang_thai,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
 
-        $loai = $data['loai_tai_khoan'] ?? ($data['quyen'] === 'admin' ? 'admin' : 'nhan_vien');
+        $loai = $data['loai_tai_khoan'] ?? ((($data['quyen'] ?? '') === 'admin') ? 'admin' : 'nhan_vien');
 
         return $stmt->execute([
             $data['ma_nhan_su'] ?? null,
@@ -229,6 +211,8 @@ class User extends Model
             $data['dia_chi'] ?? null,
             $data['link_fb'] ?? null,
             $data['ma_gioi_thieu'] ?? null,
+            $data['anh_cccd'] ?? null,
+            $data['trang_thai'] ?? 1,
         ]);
     }
 }
