@@ -100,14 +100,60 @@ class AuthController extends Controller
         // ===== HASH PASSWORD =====
         $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
 
+        // ===== HANDLE UPLOADED CCCD IMAGE =====
+        if (!empty($_FILES['anh_cccd']) && $_FILES['anh_cccd']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['anh_cccd'];
+            $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if ($file['size'] > 3 * 1024 * 1024) {
+                $_SESSION['error'] = 'Kích thước ảnh không được vượt quá 3MB';
+                header('Location: ' . BASE_URL . '/register');
+                exit;
+            }
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            if (!in_array($mime, $allowed, true)) {
+                $_SESSION['error'] = 'Định dạng ảnh không hợp lệ (chỉ JPG/PNG/WEBP)';
+                header('Location: ' . BASE_URL . '/register');
+                exit;
+            }
+
+            $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads';
+            if (!is_dir($uploadsDir)) {
+                mkdir($uploadsDir, 0755, true);
+            }
+
+            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+            $dest = $uploadsDir . '/' . $filename;
+
+            if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                $_SESSION['error'] = 'Không lưu được ảnh. Vui lòng thử lại.';
+                header('Location: ' . BASE_URL . '/register');
+                exit;
+            }
+
+            // Save filename relative to public
+            $data['anh_cccd'] = 'uploads/' . $filename;
+        }
+
         // ===== VALIDATE 'loai_tai_khoan' =====
         $allowedRoles = ['nhan_vien', 'quan_ly', 'admin'];
         if (!in_array($data['loai_tai_khoan'], $allowedRoles, true)) {
             $data['loai_tai_khoan'] = 'nhan_vien';
         }
 
-        // ===== INSERT DB =====
-        User::create($data);
+        $data['quyen'] = 'user';
+        $data['trang_thai'] = 1;
+
+        $result = User::createWithRole($data);
+
+        if (!$result) {
+            $_SESSION['error'] = 'Đăng ký thất bại, vui lòng thử lại';
+            header('Location: ' . BASE_URL . '/register');
+            exit;
+        }
+
 
         $_SESSION['success'] = 'Đăng ký thành công, vui lòng đăng nhập';
         header('Location: ' . BASE_URL . '/login');

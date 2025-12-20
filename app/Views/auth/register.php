@@ -18,13 +18,13 @@
             <div style="width: 18px;"></div>
         </header>
 
-        <form action="<?= BASE_URL ?>/register" method="POST">
+        <form action="<?= BASE_URL ?>/register" method="POST" enctype="multipart/form-data">
 
             <div class="section-label">1. Thông tin đăng nhập</div>
 
             <div class="reg-box-input">
                 <i class="fa-solid fa-user"></i>
-                <input type="number" name="so_dien_thoai" placeholder="Nhập số điện thoại">
+                <input type="text" name="so_dien_thoai" placeholder="Nhập số điện thoại" pattern="[0-9]{10}">
             </div>
             <div class="char-count">0/10</div>
 
@@ -56,7 +56,7 @@
                     <option value="" disabled selected>Chọn giới tính</option>
                     <option value="nam">Nam</option>
                     <option value="nu">Nữ</option>
-                    <option value="nu">Khác</option>
+                    <option value="khac">Khác</option>
                 </select>
                 <i class="arrow-right fa-solid fa-chevron-down"></i>
             </div>
@@ -99,10 +99,73 @@
                 <i class="arrow-right fa-solid fa-chevron-down"></i>
             </div>
 
+            <div class="edit-form-group">
+                <div class="edit-label-row"><span>4.Mặt trước CCCD</span></div>
+                <div class="upload-box-large-center" id="upload-box-cccd" style="position: relative; cursor: pointer; margin-top: 10px;">
+                    <div class="upload-hint-text" style="z-index: 2;">
+                        <i class="fa-solid fa-circle-info"></i> Tải hình ảnh
+                    </div>
+
+                    <i class="fa-solid fa-camera icon-camera-large" id="icon-camera-cccd"></i>
+                    <i class="fa-solid fa-plus icon-plus-absolute" id="icon-plus-cccd"></i>
+
+                    <div class="upload-preview-container" id="preview-container-cccd" style="display: none;">
+                        <img src="" class="upload-preview-img" id="preview-img-cccd" alt="Preview">
+                        <button class="btn-remove-image" id="btn-remove-img-cccd" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <input type="file" id="file-upload-cccd" name="anh_cccd" style="display: none;" accept="image/*">
+                </div>
+            </div>
+
             <button class="btn-save">Đăng ký</button>
 
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBox = document.getElementById('upload-box-cccd');
+            const fileInput = document.getElementById('file-upload-cccd');
+            const previewContainer = document.getElementById('preview-container-cccd');
+            const previewImg = document.getElementById('preview-img-cccd');
+            const btnRemove = document.getElementById('btn-remove-img-cccd');
+            const iconCamera = document.getElementById('icon-camera-cccd');
+            const iconPlus = document.getElementById('icon-plus-cccd');
+            const hintText = uploadBox.querySelector('.upload-hint-text');
+
+            uploadBox.addEventListener('click', function() {
+                if (previewContainer.style.display === 'none') {
+                    fileInput.click();
+                }
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        previewContainer.style.display = 'flex';
+                        iconCamera.style.display = 'none';
+                        iconPlus.style.display = 'none';
+                        if (hintText) hintText.style.display = 'none';
+                        uploadBox.style.backgroundColor = 'white';
+                        previewImg.src = evt.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            btnRemove.addEventListener('click', function(e) {
+                e.stopPropagation();
+                fileInput.value = '';
+                previewContainer.style.display = 'none';
+                previewImg.src = '';
+                iconCamera.style.display = 'block';
+                iconPlus.style.display = 'block';
+                if (hintText) hintText.style.display = 'block';
+                uploadBox.style.backgroundColor = '#f2f6ff';
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -44,8 +44,9 @@ class User extends Model
                 nam_sinh,
                 email,
                 gioi_tinh,
-                loai_tai_khoan
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                loai_tai_khoan,
+                anh_cccd
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         return $stmt->execute([
@@ -56,7 +57,8 @@ class User extends Model
             $data['nam_sinh'],
             $data['email'] ?? null,
             $data['gioi_tinh'] ?? 'Khác',
-            $data['loai_tai_khoan'] ?? 'nhan_vien'
+            $data['loai_tai_khoan'] ?? 'nhan_vien',
+            $data['anh_cccd'] ?? null,
         ]);
     }
 
@@ -121,6 +123,16 @@ class User extends Model
         $stmt->execute([$password, $email]);
     }
 
+    // Update password by user id (used for change-password by authenticated user)
+    public static function updatePasswordById($id, $password)
+    {
+        $db = self::db();
+        $stmt = $db->prepare(
+            "UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?"
+        );
+        return $stmt->execute([$password, $id]);
+    }
+
     public static function deleteToken($token)
     {
         $db = self::db();
@@ -128,5 +140,95 @@ class User extends Model
             "DELETE FROM password_resets WHERE token = ?"
         );
         $stmt->execute([$token]);
+    }
+
+    // ===== ROLE / LISTING HELPERS =====
+    // Get users by role (quyen) with optional pagination and search
+    public static function getByRole($role, $limit = 10, $offset = 0, $search = null)
+    {
+        $db = self::db();
+        // Some MySQL/PDO drivers don't allow binding LIMIT/OFFSET as parameters.
+        // Interpolate the integer values directly into the SQL to avoid syntax errors.
+        $limit = (int) $limit;
+        $offset = (int) $offset;
+        if ($search) {
+            $sql = "SELECT * FROM users WHERE quyen = ? AND (ho_ten LIKE ? OR so_dien_thoai LIKE ? OR ma_nhan_su LIKE ?) ORDER BY id DESC LIMIT $limit OFFSET $offset";
+            $stmt = $db->prepare($sql);
+            $like = '%' . $search . '%';
+            $stmt->execute([$role, $like, $like, $like]);
+        } else {
+            $sql = "SELECT * FROM users WHERE quyen = ? ORDER BY id DESC LIMIT $limit OFFSET $offset";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$role]);
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function countByRole($role, $search = null)
+    {
+        $db = self::db();
+        if ($search) {
+            $stmt = $db->prepare(
+                "SELECT COUNT(*) FROM users WHERE quyen = ? AND (ho_ten LIKE ? OR so_dien_thoai LIKE ? OR ma_nhan_su LIKE ?)"
+            );
+            $like = '%' . $search . '%';
+            $stmt->execute([$role, $like, $like, $like]);
+        } else {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE quyen = ?");
+            $stmt->execute([$role]);
+        }
+        return (int) $stmt->fetchColumn();
+    }
+
+    // ===== DELETE USER =====
+    public static function deleteById($id)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+
+    // Create user and set both quyen (role) and loai_tai_khoan
+    public static function createWithRole($data)
+    {
+        $db = self::db();
+        $stmt = $db->prepare(
+            "INSERT INTO users (
+                ma_nhan_su,
+                so_dien_thoai,
+                password,
+                ho_ten,
+                nam_sinh,
+                email,
+                gioi_tinh,
+                loai_tai_khoan,
+                quyen,
+                phong_ban,
+                so_cccd,
+                dia_chi,
+                link_fb,
+                ma_gioi_thieu,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+        );
+
+        $loai = $data['loai_tai_khoan'] ?? ($data['quyen'] === 'admin' ? 'admin' : 'nhan_vien');
+
+        return $stmt->execute([
+            $data['ma_nhan_su'] ?? null,
+            $data['so_dien_thoai'] ?? null,
+            $data['password'] ?? null,
+            $data['ho_ten'] ?? null,
+            $data['nam_sinh'] ?? null,
+            $data['email'] ?? null,
+            $data['gioi_tinh'] ?? null,
+            $loai,
+            $data['quyen'] ?? 'user',
+            $data['phong_ban'] ?? null,
+            $data['so_cccd'] ?? null,
+            $data['dia_chi'] ?? null,
+            $data['link_fb'] ?? null,
+            $data['ma_gioi_thieu'] ?? null,
+        ]);
     }
 }

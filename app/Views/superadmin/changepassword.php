@@ -20,14 +20,18 @@
         <div class="profile-card-banner" onclick="window.location.href='<?= BASE_URL ?>/superadmin/detailprofile'">
             <img src="../icon/menuanhdaidien.png" class="profile-avatar-large">
             <div class="profile-info">
-                <h3>Trần Thị A</h3>
+                <h3><?= htmlspecialchars($user['ho_ten'] ?? ($user['ten'] ?? 'Người dùng')) ?></h3>
                 <div class="profile-role">Cấp quản lý</div>
-                <div class="office-badge">TRỤ SỞ - HÀ NỘI</div>
+                <div class="office-badge"><?= htmlspecialchars($officeBadge ?? 'TRỤ SỞ - HÀ NỘI') ?></div>
             </div>
             <i class="fa-solid fa-chevron-right arrow-right-absolute"></i>
         </div>
 
-        <form action="../theme/profile.html">
+        <div class="alert-wrapper">
+            <?php require_once __DIR__ . '/../partials/alert.php'; ?>
+        </div>
+
+        <form method="post" action="<?= BASE_URL ?>/superadmin/changepassword">
 
             <div class="edit-form-group" style="margin-bottom: 20px;">
                 <div class="edit-label-row">
@@ -35,7 +39,7 @@
                 </div>
                 <div class="edit-input-box">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" placeholder="Nhập mật khẩu hiện tại">
+                    <input type="password" name="current_password" placeholder="Nhập mật khẩu hiện tại">
                 </div>
                 <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
             </div>
@@ -46,7 +50,7 @@
                 </div>
                 <div class="edit-input-box">
                     <i class="fa-solid fa-key"></i>
-                    <input type="password" placeholder="Nhập mật khẩu mới">
+                    <input type="password" name="new_password" placeholder="Nhập mật khẩu mới">
                 </div>
                 <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
             </div>
@@ -56,12 +60,12 @@
                 </div>
                 <div class="edit-input-box">
                     <i class="fa-solid fa-check-double"></i>
-                    <input type="password" placeholder="Nhập lại mật khẩu mới">
+                    <input type="password" name="confirm_password" placeholder="Nhập lại mật khẩu mới">
                 </div>
                 <div class="counter-text" style="text-align: right; margin-top: 5px;">0/10</div>
             </div>
 
-            <button class="btn-save-change">Lưu thay đổi</button>
+            <button class="btn-save-change" type="submit">Lưu thay đổi</button>
 
         </form>
         <div id="bottom-nav-container">

@@ -104,6 +104,79 @@ class SuperAdminController extends Controller
 
     public function changepassword()
     {
-        $this->view('superadmin/changepassword');
+        require_once __DIR__ . '/../../core/Auth.php';
+        require_once __DIR__ . '/../Models/User.php';
+
+        $sessionUser = \Auth::user();
+        if (empty($sessionUser['id'])) {
+            header('Location: ' . BASE_URL . '/login');
+            exit;
+        }
+
+        $id = $sessionUser['id'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $current = $_POST['current_password'] ?? '';
+            $new = $_POST['new_password'] ?? '';
+            $confirm = $_POST['confirm_password'] ?? '';
+
+            if (empty($current) || empty($new) || empty($confirm)) {
+                $_SESSION['error'] = 'Vui lòng điền đầy đủ các trường';
+                header('Location: ' . BASE_URL . '/superadmin/changepassword');
+                exit;
+            }
+
+            if ($new !== $confirm) {
+                $_SESSION['error'] = 'Mật khẩu mới và xác nhận không khớp';
+                header('Location: ' . BASE_URL . '/superadmin/changepassword');
+                exit;
+            }
+
+            $user = User::findById($id);
+            if (!$user || !password_verify($current, $user['password'])) {
+                $_SESSION['error'] = 'Mật khẩu hiện tại không đúng';
+                header('Location: ' . BASE_URL . '/superadmin/changepassword');
+                exit;
+            }
+
+            $hash = password_hash($new, PASSWORD_BCRYPT);
+            $ok = User::updatePasswordById($id, $hash);
+
+            if ($ok) {
+                // Refresh session user
+                $updated = User::findById($id);
+                if ($updated) $_SESSION['user'] = $updated;
+                $_SESSION['success'] = 'Đổi mật khẩu thành công';
+                header('Location: ' . BASE_URL . '/superadmin/changepassword');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Lỗi khi lưu mật khẩu mới';
+                header('Location: ' . BASE_URL . '/superadmin/changepassword');
+                exit;
+            }
+        }
+
+        // Prepare user data for the view
+        $user = User::findById($id);
+        if (!$user) $user = $sessionUser;
+
+        // Map role to human readable label
+        $roleRaw = strtolower($user['loai_tai_khoan'] ?? $user['quyen'] ?? '');
+        $roleMap = [
+            'nhan_vien' => 'Nhân viên',
+            'quan_ly' => 'Cấp quản lý',
+            'admin' => 'Quản trị',
+            'super_admin' => 'Quản trị'
+        ];
+        $displayRole = $roleMap[$roleRaw] ?? $roleRaw;
+
+        // Office badge - prefer 'phong_ban' then 'dia_chi'
+        $officeBadge = $user['phong_ban'] ?? $user['dia_chi'] ?? '';
+
+        $this->view('superadmin/changepassword', [
+            'user' => $user,
+            'displayRole' => $displayRole,
+            'officeBadge' => $officeBadge
+        ]);
     }
 }

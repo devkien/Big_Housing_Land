@@ -31,7 +31,7 @@
         <div class="icon-box"><i class="fa-solid fa-scale-balanced"></i></div>
         <span>Quy định và<br>hướng dẫn</span>
     </div>
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/hr_management'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-owner'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Group (2).png" alt=""></div>
         <span>Danh sách<br>CTV</span>
     </div>
