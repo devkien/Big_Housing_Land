@@ -80,10 +80,24 @@ $router->post('/reset-password', 'AuthController@handleReset');
 
 // ==================== Main ( Người dùng ) ====================
 $router->get('/home', 'MainController@index', 'auth');
+$router->get('/logout', 'MainController@logout', 'auth');
+// Profile routes
+$router->get('/profile', 'MainController@profile', 'auth');
+$router->get('/detailprofile', 'MainController@detailprofile','auth');
+$router->get('/editprofile', 'MainController@editprofile','auth');
+$router->post('/editprofile', 'MainController@editprofile','auth');
+$router->get('/changepassword', 'MainController@changepassword', 'auth');
+$router->post('/changepassword', 'MainController@changepassword', 'auth');
 
 
 // ==================== Admin ====================
 $router->get('/admin/home', 'AdminController@index', 'role:admin,super_admin');
+$router->get('/admin/logout', 'AdminController@logout', 'role:admin,super_admin');
+// Profile routes
+$router->get('/admin/profile', 'AdminController@profile', 'role:admin,super_admin');
+$router->get('/admin/detailprofile', 'AdminController@detailprofile', 'role:admin,super_admin');
+$router->get('/admin/editprofile', 'AdminController@editprofile', 'role:admin,super_admin');
+$router->post('/admin/editprofile', 'AdminController@editprofile', 'role:admin,super_admin');
 
 
 // ==================== SuperAdmin ====================
