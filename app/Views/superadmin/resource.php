@@ -27,7 +27,6 @@
 
         <div class="toolbar-section">
             <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
-            <button class="tool-btn" id="btn-search"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
             <div style="flex:1;"></div>
         </div>
         <div class="table-wrapper" style="margin-bottom: 0;">
@@ -43,135 +42,45 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td onclick="window.location.href='detail.html'">ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr onclick="window.location.href='detail.html'">
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td>ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-
-                    <tr onclick="window.location.href='detail.html'">
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td>ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr onclick="window.location.href='detail.html'">
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td>ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
-                    <tr onclick="window.location.href='detail.html'">
-                        <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                        <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                        <td>ND01</td>
-                        <td>19/09/2025</td>
-                        <td><span class="status-badge strong">Bán mạnh</span></td>
-                        <td style="text-align:right; padding-right:15px;">1277.45.3</td>
-                    </tr>
+                    <?php
+                    $statusMap = [
+                        'ban_manh' => 'Bán mạnh',
+                        'tam_dung_ban' => 'Tạm dừng',
+                        'dung_ban' => 'Dừng bán',
+                        'da_ban' => 'Đã bán',
+                        'tang_chao' => 'Tăng chào',
+                        'ha_chao' => 'Hạ chào'
+                    ];
+                    if (empty($properties)) :
+                    ?>
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
+                        </tr>
+                        <?php else :
+                        foreach ($properties as $p) :
+                            $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
+                            $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
+                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $address = trim($p['dia_chi_chi_tiet'] ?? '');
+                            if ($address === '') {
+                                $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
+                                $address = htmlspecialchars(implode(', ', $parts));
+                            } else {
+                                $address = htmlspecialchars($address);
+                            }
+                        ?>
+                            <tr onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
+                                <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                                <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
+                                <td><?= $code ?></td>
+                                <td><?= $created ?></td>
+                                <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>
+                                <td style="text-align:right; padding-right:15px;"><?= $address ?></td>
+                            </tr>
+                    <?php
+                        endforeach;
+                    endif;
+                    ?>
                 </tbody>
             </table>
         </div>
@@ -187,15 +96,18 @@
                 <div class="filter-group">
                     <label class="filter-label">Hiện trạng</label>
                     <select id="filter-status" class="filter-select">
-                        <option value="all">Tất cả</option>
-                        <option value="Bán mạnh">Bán mạnh</option>
-                        <option value="Đã bán">Đã bán</option>
-                        <option value="Tạm dừng">Tạm dừng</option>
+                        <option value="all" <?= (empty($status) || $status === 'all') ? 'selected' : '' ?>>Tất cả</option>
+                        <option value="ban_manh" <?= (isset($status) && $status === 'ban_manh') ? 'selected' : '' ?>>Bán mạnh</option>
+                        <option value="tam_dung_ban" <?= (isset($status) && $status === 'tam_dung_ban') ? 'selected' : '' ?>>Tạm dừng bán</option>
+                        <option value="dung_ban" <?= (isset($status) && $status === 'dung_ban') ? 'selected' : '' ?>>Dừng bán</option>
+                        <option value="da_ban" <?= (isset($status) && $status === 'da_ban') ? 'selected' : '' ?>>Đã bán</option>
+                        <option value="tang_chao" <?= (isset($status) && $status === 'tang_chao') ? 'selected' : '' ?>>Tăng chào</option>
+                        <option value="ha_chao" <?= (isset($status) && $status === 'ha_chao') ? 'selected' : '' ?>>Hạ chào</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label class="filter-label">Mã tin / Địa chỉ</label>
-                    <input type="text" id="filter-address" class="filter-input" placeholder="Nhập mã tin (VD: 1277)...">
+                    <input type="text" id="filter-address" class="filter-input" placeholder="Nhập mã tin (VD: 1277)..." value="<?= htmlspecialchars($address ?? '') ?>">
                 </div>
                 <div class="modal-actions">
                     <button id="close-filter" class="btn-cancel">Hủy</button>

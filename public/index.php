@@ -117,6 +117,15 @@ $router->post('/superadmin/update-personnel', 'MemberController@updatepersonnel'
 $router->get('/superadmin/management-resource', 'ResourceController@resource', 'role:super_admin');
 $router->get('/superadmin/management-resource-rent', 'ResourceController@resourceRent', 'role:super_admin');
 $router->get('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
+$router->post('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
+
+// Collection management routes
+$router->get('/superadmin/collection', 'CollectionController@collection', 'role:super_admin');
+$router->get('/superadmin/cre-collection', 'CollectionController@creCollection', 'role:super_admin');
+$router->post('/superadmin/cre-collection', 'CollectionController@creCollection', 'role:super_admin');
+// AJAX endpoints for collection management
+$router->post('/superadmin/collection-rename', 'CollectionController@renameCollection', 'role:super_admin');
+$router->post('/superadmin/collection-delete', 'CollectionController@deleteCollection', 'role:super_admin');
 
 /**
  * ============================

@@ -9,7 +9,7 @@
         <span>Kho tài<br>nguyên</span>
     </div>
 
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/collection'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/collection'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Group (1).png" alt=""></div>
         <span>Bộ sưu tập</span>
     </div>

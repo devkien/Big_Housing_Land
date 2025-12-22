@@ -139,27 +139,21 @@ document.addEventListener('DOMContentLoaded', function () {
         // Đóng modal
         if (btnCloseFilter) btnCloseFilter.onclick = function () { filterModal.style.display = "none"; }
 
-        // Áp dụng lọc
+        // Áp dụng lọc (server-side) - redirect với query params
         if (btnApplyFilter) {
             btnApplyFilter.onclick = function () {
-                const statusVal = document.getElementById('filter-status').value.toLowerCase();
-                const addressVal = document.getElementById('filter-address').value.toLowerCase();
-                const rows = document.querySelectorAll('.resource-table tbody tr');
+                const statusVal = document.getElementById('filter-status').value;
+                const addressVal = document.getElementById('filter-address').value.trim();
 
-                rows.forEach(row => {
-                    // Đảm bảo dòng có đủ cột trước khi lấy dữ liệu
-                    if (row.cells.length > 4) {
-                        const statusCell = row.cells[3].innerText.toLowerCase(); // Cột Hiện trạng
-                        const addressCell = row.cells[4].innerText.toLowerCase(); // Cột Địa chỉ
+                const params = new URLSearchParams(window.location.search);
+                if (statusVal && statusVal !== 'all') params.set('status', statusVal); else params.delete('status');
+                if (addressVal) params.set('address', addressVal); else params.delete('address');
+                params.delete('page');
 
-                        let show = true;
-                        if (statusVal !== 'all' && !statusCell.includes(statusVal)) show = false;
-                        if (addressVal !== '' && !addressCell.includes(addressVal)) show = false;
-
-                        row.style.display = show ? '' : 'none';
-                    }
-                });
+                // Close modal and navigate
                 filterModal.style.display = "none";
+                const qs = params.toString();
+                window.location.search = qs ? ('?' + qs) : '';
             }
         }
     }
