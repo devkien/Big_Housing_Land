@@ -458,10 +458,17 @@ body {
     text-align: center;
 }
 
-.banner-img {
+/* Banner image styles - support both class names used in views */
+.banner-img,
+.banner-images {
     width: 100%;
+    max-width: 720px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
 }
 
 /* News Feed */
@@ -549,6 +556,16 @@ body {
     color: #aaa;
 }
 
+/* Ensure inline images (documents, banners, previews) do not overflow their containers */
+.doc-preview-images,
+.banner-images,
+.news-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
 /* Bottom Nav */
 .bottom-nav {
     position: fixed;
@@ -597,6 +614,12 @@ body {
         max-width: 100%;
         /* Cho phép tràn viền trên Tablet/iPad */
         box-shadow: none;
+    }
+
+    /* Slightly reduce banner max width on tablet to keep comfortable margins */
+    .banner-img,
+    .banner-images {
+        max-width: 640px;
     }
 
     /* Login Tablet */
@@ -1436,6 +1459,111 @@ body {
     font-weight: 600;
 }
 
+/* ==========================
+   HR FILTER / SEARCH MODAL
+   Polished styles to match app theme
+   ========================== */
+
+#hr-filter-modal .modal-content,
+#hr-search-modal .modal-content {
+    max-width: 420px;
+    width: 92%;
+    padding: 18px 18px 16px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(2, 6, 23, 0.12);
+    border: 1px solid rgba(1, 55, 174, 0.06);
+}
+
+#hr-filter-modal h3,
+#hr-search-modal h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--primary-blue);
+}
+
+#hr-filter-modal label,
+#hr-search-modal label {
+    display: block;
+    font-size: 13px;
+    color: #263244;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+#hr-filter-modal input[type="text"],
+#hr-search-modal input[type="text"],
+#hr-filter-modal select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #e6e9ef;
+    background: #fbfdff;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+    transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+#hr-filter-modal input[type="text"]::placeholder,
+#hr-search-modal input[type="text"]::placeholder {
+    color: #9aa3b2;
+}
+
+#hr-filter-modal input[type="text"]:focus,
+#hr-search-modal input[type="text"]:focus,
+#hr-filter-modal select:focus {
+    border-color: rgba(1, 55, 174, 0.18);
+    box-shadow: 0 6px 18px rgba(1, 55, 174, 0.06);
+}
+
+.modal-actions.row-center {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+#hr-filter-modal .btn-save,
+#hr-search-modal .btn-save {
+    background: var(--primary-blue);
+    color: #fff;
+    padding: 10px 26px;
+    border-radius: 10px;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(1, 55, 174, 0.12);
+}
+
+#hr-filter-modal .btn-cancel,
+#hr-search-modal .btn-cancel {
+    background: #f3f4f6;
+    color: #1f2937;
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* Small-screen tweaks */
+@media (max-width: 420px) {
+
+    #hr-filter-modal .modal-content,
+    #hr-search-modal .modal-content {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    #hr-filter-modal h3,
+    #hr-search-modal h3 {
+        font-size: 15px;
+    }
+}
+
+/* ==========================
+   END HR FILTER / SEARCH MODAL
+   Polished styles to match app theme
+   ========================== */
 .btn-apply {
     background: #0033cc;
     color: white;
@@ -3598,6 +3726,10 @@ body {
     vertical-align: middle;
     color: #000;
     font-weight: 600;
+}
+
+.hr-table tbody td a {
+    text-decoration: none;
 }
 
 /* Màu xen kẽ các dòng (Zebra) */

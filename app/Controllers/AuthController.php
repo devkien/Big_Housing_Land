@@ -16,13 +16,13 @@ class AuthController extends Controller
         $user = User::findForLogin($identity);
 
         if (!$user || !password_verify($password, $user['password'])) {
-            $_SESSION['error'] = 'Sai thông tin đăng nhập';
+            // $_SESSION['error'] = 'Sai thông tin đăng nhập';
             header('Location: ' . BASE_URL . '/login');
             exit;
         }
 
         if ($user['trang_thai'] == 0) {
-            $_SESSION['error'] = 'Tài khoản đã bị khóa';
+            // $_SESSION['error'] = 'Tài khoản đã bị khóa';
             header('Location: ' . BASE_URL . '/login');
             exit;
         }

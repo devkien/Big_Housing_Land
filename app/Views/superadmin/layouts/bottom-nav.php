@@ -1,6 +1,6 @@
 <nav class="bottom-nav">
     <a href="<?= BASE_URL ?>/superadmin/home" class="nav-item" id="nav-home">
-        <img src="<?= BASE_URL ?>/icon/menuhome.png" alt="">
+        <img src="<?= BASE_URL ?>/icon/nhanhanha.png" alt="">
     </a>
     <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-collection">
         <img src="<?= BASE_URL ?>/icon/menubosuutam.png" alt="">

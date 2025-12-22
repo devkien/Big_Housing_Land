@@ -35,11 +35,11 @@ class User extends Model
     public static function create($data)
     {
         $db = self::db();
-            // The original implementation contained a SQL typo and mismatched
-            // placeholders which could cause runtime DB errors. Delegate to the
-            // proven `createWithRole` implementation to keep a single source of
-            // truth for user creation logic.
-            return self::createWithRole($data);
+        // The original implementation contained a SQL typo and mismatched
+        // placeholders which could cause runtime DB errors. Delegate to the
+        // proven `createWithRole` implementation to keep a single source of
+        // truth for user creation logic.
+        return self::createWithRole($data);
     }
 
     // ===== CHECK PHONE =====
@@ -166,6 +166,37 @@ class User extends Model
         $db = self::db();
         $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
         return $stmt->execute([$id]);
+    }
+
+    // Update a set of profile fields (used by admin update form)
+    public static function updateProfile($id, $data)
+    {
+        $db = self::db();
+        // Also persist 'quyen' and 'loai_tai_khoan' when provided.
+        $stmt = $db->prepare(
+            "UPDATE users SET ma_nhan_su = ?, so_dien_thoai = ?, ho_ten = ?, nam_sinh = ?, email = ?, so_cccd = ?, phong_ban = ?, dia_chi = ?, link_fb = ?, ma_gioi_thieu = ?, anh_cccd = ?, trang_thai = ?, quyen = ?, loai_tai_khoan = ?, updated_at = NOW() WHERE id = ?"
+        );
+
+        // Derive loai_tai_khoan if not explicitly provided (keep compatibility)
+        $loai = $data['loai_tai_khoan'] ?? ((($data['quyen'] ?? '') === 'admin') ? 'admin' : 'nhan_vien');
+
+        return $stmt->execute([
+            $data['ma_nhan_su'] ?? null,
+            $data['so_dien_thoai'] ?? null,
+            $data['ho_ten'] ?? null,
+            $data['nam_sinh'] ?? null,
+            $data['email'] ?? null,
+            $data['so_cccd'] ?? null,
+            $data['phong_ban'] ?? null,
+            $data['dia_chi'] ?? null,
+            $data['link_fb'] ?? null,
+            $data['ma_gioi_thieu'] ?? null,
+            $data['anh_cccd'] ?? null,
+            isset($data['trang_thai']) ? (int)$data['trang_thai'] : 0,
+            $data['quyen'] ?? 'user',
+            $loai,
+            $id
+        ]);
     }
 
     // Create user and set both quyen (role) and loai_tai_khoan

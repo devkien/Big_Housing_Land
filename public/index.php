@@ -110,6 +110,14 @@ $router->post('/superadmin/management-delete', 'MemberController@delete', 'role:
 $router->get('/superadmin/add-personnel', 'MemberController@addpersonnel', 'role:super_admin');
 $router->post('/superadmin/add-personnel', 'MemberController@addpersonnel', 'role:super_admin');
 
+$router->get('/superadmin/update-personnel', 'MemberController@updatepersonnel', 'role:super_admin');
+$router->post('/superadmin/update-personnel', 'MemberController@updatepersonnel', 'role:super_admin');
+
+// Resource  management routes
+$router->get('/superadmin/management-resource', 'ResourceController@resource', 'role:super_admin');
+$router->get('/superadmin/management-resource-rent', 'ResourceController@resourceRent', 'role:super_admin');
+$router->get('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
+
 /**
  * ============================
  * DISPATCH

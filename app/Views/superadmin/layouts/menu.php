@@ -1,10 +1,10 @@
 <div class="grid-menu">
 
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/post'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-post'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Vector (1).png" alt=""></div>
         <span>Đăng tin</span>
     </div>
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/resource'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Group.png" alt=""></div>
         <span>Kho tài<br>nguyên</span>
     </div>

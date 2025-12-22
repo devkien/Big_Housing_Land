@@ -24,10 +24,12 @@
             <button class="hr-tab-btn" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-guest'">Quản lý đầu khách</button>
         </div>
 
+        <?php require_once __DIR__ . '/../partials/alert.php'; ?>
+
         <div class="hr-toolbar">
             <div style="display: flex; gap: 10px;">
-                <button class="btn-tool-outline"><i class="fa-solid fa-filter"></i> Lọc</button>
-                <button class="btn-tool-outline"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
+                <button id="btn-hr-filter" class="btn-tool-outline"><i class="fa-solid fa-filter"></i> Lọc</button>
+                <button id="btn-hr-search" class="btn-tool-outline"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
             </div>
             <a href="<?= BASE_URL ?>/superadmin/add-personnel" class="btn-add-blue" style="text-decoration: none;">
                 <i class="fa-solid fa-user-plus"></i> Thêm nhân sự
@@ -59,8 +61,21 @@
                             $statusText = (isset($u['trang_thai']) && $u['trang_thai'] == 1) ? 'Hoạt động' : 'Tạm dừng';
                         ?>
                             <tr>
-                                <td style="padding-left:10px; text-align: center;"><i class="fa-regular fa-trash-can icon-trash-red" data-id="<?= htmlspecialchars($u['id']) ?>"></i></td>
-                                <td><span class="text-id-blue" onclick="window.location.href='#'"><?= htmlspecialchars($u['ma_nhan_su'] ?? '') ?></span></td>
+                                <td style="padding-left:10px; text-align: center;">
+                                    <form method="POST" action="<?= BASE_URL ?>/superadmin/management-delete" style="display:inline;">
+                                        <?php require_once __DIR__ . '/../../Helpers/functions.php';
+                                        echo csrf_field(); ?>
+                                        <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
+                                        <button type="button" style="background:transparent;border:none;padding:0;cursor:pointer;">
+                                            <i class="fa-regular fa-trash-can icon-trash-red"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <a class="text-id-blue" href="<?= BASE_URL ?>/superadmin/update-personnel?id=<?= (int)($u['id'] ?? 0) ?>">
+                                        <?= htmlspecialchars($u['ma_nhan_su'] ?? '') ?>
+                                    </a>
+                                </td>
                                 <td class="<?= $statusClass ?>"><?= $statusText ?></td>
                                 <td><?= htmlspecialchars($u['ho_ten'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($u['so_dien_thoai'] ?? '') ?></td>

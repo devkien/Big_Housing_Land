@@ -83,6 +83,93 @@ class MemberController extends Controller
         $this->view('superadmin/add-personnel');
     }
 
+    public function updatepersonnel()
+    {
+        // Expect an id via query string: /superadmin/update-personnel?id=123
+        $id = $_GET['id'] ?? null;
+        if (empty($id) || !is_numeric($id)) {
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '/superadmin/management-owner');
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/User.php';
+
+        // If POST: handle update
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Helpers/functions.php';
+            $token = $_POST['_csrf'] ?? null;
+            if (!verify_csrf($token)) {
+                $_SESSION['error'] = 'Token không hợp lệ. Vui lòng thử lại.';
+                header('Location: ' . BASE_URL . '/superadmin/update-personnel?id=' . (int)$id);
+                exit;
+            }
+
+            $data = [];
+            $data['ho_ten'] = trim($_POST['ho_ten'] ?? '');
+            $data['so_dien_thoai'] = trim($_POST['so_dien_thoai'] ?? '');
+            $data['email'] = trim($_POST['email'] ?? '');
+            $data['nam_sinh'] = trim($_POST['nam_sinh'] ?? null);
+            $data['so_cccd'] = trim($_POST['so_cccd'] ?? null);
+            $data['phong_ban'] = trim($_POST['phong_ban'] ?? null);
+            $data['ma_nhan_su'] = trim($_POST['ma_nhan_su'] ?? null);
+            $data['ma_gioi_thieu'] = trim($_POST['ma_gioi_thieu'] ?? null);
+            $data['link_fb'] = trim($_POST['link_fb'] ?? null);
+            $data['dia_chi'] = trim($_POST['dia_chi'] ?? null);
+            $data['quyen'] = trim($_POST['quyen'] ?? 'user');
+            // trang_thai: map from select value
+            $status = $_POST['trang_thai'] ?? null;
+            $data['trang_thai'] = ($status === 'Hoạt động') ? 1 : 0;
+
+            // Handle optional password change
+            $newPassword = $_POST['password'] ?? '';
+
+            // Handle file upload (anh_cccd)
+            if (!empty($_FILES['anh_cccd']) && $_FILES['anh_cccd']['error'] === UPLOAD_ERR_OK) {
+                $tmp = $_FILES['anh_cccd']['tmp_name'];
+                $origName = basename($_FILES['anh_cccd']['name']);
+                $ext = pathinfo($origName, PATHINFO_EXTENSION);
+                $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+                if (in_array(strtolower($ext), $allowed)) {
+                    $uploadsDir = __DIR__ . '/../../public/uploads';
+                    if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
+                    $fileName = 'cccd_' . (int)$id . '_' . time() . '.' . $ext;
+                    $dest = $uploadsDir . '/' . $fileName;
+                    if (move_uploaded_file($tmp, $dest)) {
+                        // store web-accessible path
+                        $data['anh_cccd'] = rtrim(BASE_URL, '/') . '/public/uploads/' . $fileName;
+                    }
+                }
+            }
+
+            // Persist changes
+            $ok = User::updateProfile((int)$id, $data);
+
+            // If password provided, update it
+            if ($ok && !empty($newPassword)) {
+                $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
+                User::updatePasswordById((int)$id, $hashed);
+            }
+
+            if ($ok) {
+                $_SESSION['success'] = 'Cập nhật thành công.';
+            } else {
+                $_SESSION['error'] = 'Lỗi khi lưu vào cơ sở dữ liệu.';
+            }
+            header('Location: ' . BASE_URL . '/superadmin/update-personnel?id=' . (int)$id);
+            exit;
+        }
+
+        $user = User::findById((int)$id);
+        if (!$user) {
+            $_SESSION['error'] = 'Không tìm thấy nhân sự.';
+            header('Location: ' . BASE_URL . '/superadmin/management-owner');
+            exit;
+        }
+
+        $this->view('superadmin/update-personnel', ['user' => $user]);
+    }
+
     public function guest()
     {
         // fetch query params for pagination / search (same logic as owner but for role 'user')
@@ -115,30 +202,71 @@ class MemberController extends Controller
             echo json_encode(['ok' => false, 'message' => 'Method not allowed']);
             return;
         }
-
-        // Read input (support form-encoded or JSON)
+        // Support both form POST and JSON body for AJAX
         $id = $_POST['id'] ?? null;
+        $token = $_POST['_csrf'] ?? null;
+
+        // If JSON body (AJAX), decode it
         if (!$id) {
-            // try JSON body
             $body = file_get_contents('php://input');
             $json = json_decode($body, true);
-            $id = $json['id'] ?? null;
+            if (is_array($json)) {
+                $id = $json['id'] ?? null;
+                // allow CSRF token in JSON as well
+                if (isset($json['_csrf'])) $token = $json['_csrf'];
+            }
         }
 
+        // Basic id validation
         if (empty($id) || !is_numeric($id)) {
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Invalid id']);
+            // If AJAX, return json
+            $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+            if ($isJson) {
+                http_response_code(400);
+                echo json_encode(['ok' => false, 'message' => 'Invalid id']);
+                return;
+            }
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/superadmin/management-owner'));
+            return;
+        }
+
+        // Verify CSRF
+        require_once __DIR__ . '/../Helpers/functions.php';
+        if (!verify_csrf($token)) {
+            $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+            if ($isJson) {
+                http_response_code(403);
+                echo json_encode(['ok' => false, 'message' => 'CSRF token invalid']);
+                return;
+            }
+            $_SESSION['error'] = 'Token không hợp lệ. Vui lòng thử lại.';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/superadmin/management-owner'));
             return;
         }
 
         require_once __DIR__ . '/../Models/User.php';
         $ok = User::deleteById((int)$id);
 
+        $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+
         if ($ok) {
-            echo json_encode(['ok' => true, 'message' => 'Đã xóa thành công']);
+            if ($isJson) {
+                echo json_encode(['ok' => true, 'message' => 'Đã xóa thành công']);
+                return;
+            }
+            $_SESSION['success'] = 'Xóa nhân sự thành công.';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/superadmin/management-owner'));
+            return;
         } else {
-            http_response_code(500);
-            echo json_encode(['ok' => false, 'message' => 'Lỗi server khi xóa']);
+            if ($isJson) {
+                http_response_code(500);
+                echo json_encode(['ok' => false, 'message' => 'Lỗi server khi xóa']);
+                return;
+            }
+            $_SESSION['error'] = 'Lỗi khi xóa trên server.';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/superadmin/management-owner'));
+            return;
         }
     }
 }

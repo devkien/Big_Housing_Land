@@ -4,27 +4,33 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- 1. TẢI BOTTOM NAV ---
     const bottomNavContainer = document.getElementById('bottom-nav-container');
     if (bottomNavContainer) {
-        fetch('../layout/bottom-nav.html')
-            .then(response => response.text())
-            .then(data => {
-                bottomNavContainer.innerHTML = data;
+        // If server already rendered bottom nav (non-empty), don't overwrite it.
+        if (bottomNavContainer.innerHTML.trim() === '') {
+            fetch('../layout/bottom-nav.html')
+                .then(response => response.text())
+                .then(data => {
+                    bottomNavContainer.innerHTML = data;
+                    runBottomNavHighlight();
+                })
+                .catch(err => console.error('Lỗi tải Bottom Nav:', err));
+        } else {
+            // server-rendered: still run highlight
+            runBottomNavHighlight();
+        }
+    }
 
-                // --- TỰ ĐỘNG HIGHLIGHT TAB HIỆN TẠI ---
-                const path = window.location.pathname;
-                if (path.includes('home.html') || path.includes('report_customer.html') || path.includes('hr_management.html') || path.includes('add_personnel.html') || path.includes('update_personnel.html')) document.getElementById('nav-home')?.classList.add('active');
-                if (path.includes('collection.html')) document.getElementById('nav-collection')?.classList.add('active');
-                if (path.includes('info.html')) document.getElementById('nav-info')?.classList.add('active');
-                if (path.includes('notification.html')) document.getElementById('nav-notify')?.classList.add('active');
+    function runBottomNavHighlight() {
+        const path = window.location.pathname;
+        if (path.includes('home.html') || path.includes('report_customer.html') || path.includes('hr_management.html') || path.includes('add_personnel.html') || path.includes('update_personnel.html')) document.getElementById('nav-home')?.classList.add('active');
+        if (path.includes('collection.html')) document.getElementById('nav-collection')?.classList.add('active');
+        if (path.includes('info.html')) document.getElementById('nav-info')?.classList.add('active');
+        if (path.includes('notification.html')) document.getElementById('nav-notify')?.classList.add('active');
 
-                // Highlight tab Cá nhân cho cả các trang con (Đổi mật khẩu, Chỉnh sửa hồ sơ...)
-                if (path.includes('profile.html') || path.includes('editprofile.html') || path.includes('changepassword.html') || path.includes('detailprofile.html')) {
-                    const profileNav = document.getElementById('nav-profile');
-                    if (profileNav) profileNav.classList.add('active');
-                    // Thêm viền xanh cho ảnh đại diện khi active
-                    if (profileNav) profileNav.querySelector('img').style.border = '2px solid #0137AE';
-                }
-            })
-            .catch(err => console.error('Lỗi tải Bottom Nav:', err));
+        if (path.includes('profile.html') || path.includes('editprofile.html') || path.includes('changepassword.html') || path.includes('detailprofile.html')) {
+            const profileNav = document.getElementById('nav-profile');
+            if (profileNav) profileNav.classList.add('active');
+            if (profileNav && profileNav.querySelector('img')) profileNav.querySelector('img').style.border = '2px solid #0137AE';
+        }
     }
 
     // --- 1.1 TẢI MENU (Dành cho trang Home) ---
@@ -350,24 +356,89 @@ document.addEventListener('DOMContentLoaded', function () {
             const btnConfirmDelete = document.getElementById('confirm-delete-btn');
             const btnCancelDelete = document.getElementById('cancel-delete-btn');
             let rowToDelete = null;
+            let formToSubmit = null;
 
             if (deleteModal) {
                 // Sử dụng Event Delegation để bắt sự kiện click cho icon thùng rác
                 hrTable.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('icon-trash-red') || e.target.closest('.icon-trash-red')) {
+                    const trash = e.target.classList.contains('icon-trash-red') ? e.target : (e.target.closest && e.target.closest('.icon-trash-red'));
+                    if (trash) {
                         e.stopPropagation();
                         rowToDelete = e.target.closest('tr');
+                        // Find the form that wraps the button/icon
+                        formToSubmit = trash.closest('form');
                         deleteModal.style.display = 'flex';
                     }
                 });
 
-                if (btnCancelDelete) btnCancelDelete.onclick = () => { deleteModal.style.display = 'none'; rowToDelete = null; };
+                if (btnCancelDelete) btnCancelDelete.onclick = () => { deleteModal.style.display = 'none'; rowToDelete = null; formToSubmit = null; };
 
-                if (btnConfirmDelete) btnConfirmDelete.onclick = () => {
-                    if (rowToDelete) {
-                        rowToDelete.remove(); // Xóa dòng khỏi bảng
-                        updateHrPagination(); // Cập nhật lại phân trang
-                        deleteModal.style.display = 'none';
+                if (btnConfirmDelete) btnConfirmDelete.onclick = async () => {
+                    if (!btnConfirmDelete) return;
+                    // Disable confirm to prevent double clicks
+                    btnConfirmDelete.disabled = true;
+
+                    try {
+                        if (formToSubmit) {
+                            // read action and tokens from form
+                            const action = formToSubmit.getAttribute('action') || (window.BASE_URL ? window.BASE_URL + '/superadmin/management-delete' : '/superadmin/management-delete');
+                            const csrfInput = formToSubmit.querySelector('input[name="_csrf"]');
+                            const idInput = formToSubmit.querySelector('input[name="id"]');
+                            const payload = {
+                                id: idInput ? idInput.value : null,
+                                _csrf: csrfInput ? csrfInput.value : null
+                            };
+
+                            const resp = await fetch(action, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(payload),
+                                credentials: 'same-origin'
+                            });
+
+                            const data = await (resp.ok ? resp.json().catch(() => null) : resp.json().catch(() => null));
+
+                            if (resp.ok && data && data.ok) {
+                                if (rowToDelete) rowToDelete.remove();
+                                updateHrPagination();
+                                deleteModal.style.display = 'none';
+                                formToSubmit = null;
+                                rowToDelete = null;
+
+                                const successModal = document.getElementById('success-modal');
+                                const successTitle = document.getElementById('success-modal-title');
+                                const successMsg = document.getElementById('success-modal-message');
+                                const successOkBtn = document.getElementById('success-ok-btn');
+                                if (successModal) {
+                                    if (successTitle) successTitle.innerText = 'Thành công';
+                                    if (successMsg) successMsg.innerText = data.message || 'Đã xóa.';
+                                    successModal.style.display = 'flex';
+                                    if (successOkBtn) successOkBtn.onclick = () => { successModal.style.display = 'none'; };
+                                }
+                            } else {
+                                const msg = (data && data.message) ? data.message : 'Lỗi khi xóa.';
+                                alert(msg);
+                            }
+
+                            btnConfirmDelete.disabled = false;
+                            return;
+                        }
+
+                        // Fallback: if no form, remove row locally
+                        if (rowToDelete) {
+                            rowToDelete.remove();
+                            updateHrPagination();
+                            deleteModal.style.display = 'none';
+                            rowToDelete = null;
+                        }
+                    } catch (err) {
+                        console.error('Delete failed', err);
+                        alert('Không thể xóa. Vui lòng thử lại.');
+                    } finally {
+                        if (btnConfirmDelete) btnConfirmDelete.disabled = false;
                     }
                 };
             }
