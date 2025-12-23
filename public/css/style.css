@@ -2521,7 +2521,8 @@ body {
 /* Form chỉnh sửa */
 .edit-form-group {
     margin-bottom: 15px;
-    padding: 0 15px;
+    margin-top: 20px;
+    padding: 5px 15px;
 }
 
 .edit-label-row {
@@ -3340,7 +3341,7 @@ body {
 .edit-form-group {
     margin-bottom: 20px;
     /* Khoảng cách giữa các ô nhập */
-    padding: 0 15px;
+    padding: 5px 15px;
 }
 
 /* 2. Dòng nhãn tiêu đề (Label + Bộ đếm) */

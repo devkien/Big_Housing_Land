@@ -25,19 +25,19 @@
         </div>
 
         <div class="quick-access-grid">
-            <a href="../resource.html" class="quick-card">
+            <a href="<?= BASE_URL ?>/management-resource" class="quick-card">
                 <i class="fa-solid fa-house-chimney quick-icon"></i>
                 <span class="quick-text">Kho tài nguyên</span>
             </a>
-            <div class="quick-card">
+            <a href="<?= BASE_URL ?>/policy" class="quick-card">
                 <i class="fa-regular fa-clipboard quick-icon"></i>
                 <span class="quick-text">Quy định và hướng dẫn</span>
-            </div>
-            <a href="../notification.html" class="quick-card">
+            </a>
+            <a href="<?= BASE_URL ?>/notification" class="quick-card">
                 <i class="fa-solid fa-money-bill-1-wave quick-icon"></i>
                 <span class="quick-text">Thông báo vụ chốt</span>
             </a>
-            <a href="../report_list.html" class="quick-card">
+            <a href="<?= BASE_URL ?>/report_list" class="quick-card">
                 <i class="fa-solid fa-chart-simple quick-icon"></i>
                 <span class="quick-text">Báo cáo dẫn khách</span>
             </a>

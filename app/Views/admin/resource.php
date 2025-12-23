@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kho tài nguyên</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../Public/Css/style.css">
-    <script src="../Public/Js/script.js"></script>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
 <body>
     <div class="app-container" style="background: white;">
 
         <header class="resource-header">
-            <a href="<?= BASE_URL ?>/superadmin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="<?= BASE_URL ?>/admin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="resource-title">Kho tài nguyên</div>
             <div class="header-icon-btn"></div>
         </header>
@@ -22,7 +22,7 @@
         <div class="tabs-container">
             <button class="tab-btn active">Kho nhà đất</button>
 
-            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-rent'">Kho nhà cho thuê</button>
+            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource-rent'">Kho nhà cho thuê</button>
         </div>
 
         <div class="toolbar-section">
@@ -69,7 +69,7 @@
                                 $address = htmlspecialchars($address);
                             }
                         ?>
-                            <tr onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
+                            <tr onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
                                 <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td><?= $code ?></td>
@@ -85,7 +85,23 @@
             </table>
         </div>
         <div class="pagination-container">
-            <!-- Phân trang sẽ được tạo bởi JavaScript -->
+            <?php
+            // Build query string to persist filters
+            $queryParams = [];
+            if (!empty($status)) $queryParams['status'] = $status;
+            if (!empty($address)) $queryParams['address'] = $address;
+            $queryString = http_build_query($queryParams);
+            ?>
+
+            <?php if ($page > 1): ?>
+                <a href="<?= BASE_URL ?>/admin/management-resource?page=<?= $page - 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+            <?php endif; ?>
+            
+            <a href="#" class="page-link active"><?= $page ?> / <?= $pages > 0 ? $pages : 1 ?></a>
+            
+            <?php if ($page < $pages): ?>
+                <a href="<?= BASE_URL ?>/admin/management-resource?page=<?= $page + 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+            <?php endif; ?>
         </div>
 
         <!-- Modal Lọc -->
@@ -115,19 +131,7 @@
                 </div>
             </div>
         </div>
-        <!-- Modal Tìm kiếm -->
-        <div id="search-modal" class="modal">
-            <div class="modal-content">
-                <h3 style="margin-bottom: 15px; font-size: 16px;">Tìm kiếm</h3>
-                <div class="filter-group">
-                    <input type="text" id="search-input" class="filter-input" placeholder="Nhập từ khóa (Mã tin, địa chỉ, ghi chú)...">
-                </div>
-                <div class="modal-actions">
-                    <button id="close-search" class="btn-cancel">Hủy</button>
-                    <button id="apply-search" class="btn-apply">Tìm kiếm</button>
-                </div>
-            </div>
-        </div>
+
         <!-- Modal Lưu vào bộ sưu tập -->
         <div id="save-collection-modal" class="modal">
             <div class="modal-content">
@@ -183,6 +187,47 @@
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterModal = document.getElementById('filter-modal');
+            const btnFilter = document.getElementById('btn-filter');
+            const closeFilter = document.getElementById('close-filter');
+            const applyFilter = document.getElementById('apply-filter');
+
+            if (btnFilter) {
+                btnFilter.addEventListener('click', () => {
+                    if (filterModal) filterModal.style.display = 'flex';
+                });
+            }
+
+            if (closeFilter) {
+                closeFilter.addEventListener('click', () => {
+                    if (filterModal) filterModal.style.display = 'none';
+                });
+            }
+
+            window.addEventListener('click', (event) => {
+                if (event.target == filterModal) {
+                    filterModal.style.display = 'none';
+                }
+            });
+
+            if (applyFilter) {
+                applyFilter.addEventListener('click', () => {
+                    const status = document.getElementById('filter-status').value;
+                    const address = document.getElementById('filter-address').value;
+                    
+                    const url = new URL('<?= BASE_URL ?>/admin/management-resource', window.location.origin);
+                    url.searchParams.set('page', '1'); // Reset to first page on new filter
+
+                    if (status && status !== 'all') url.searchParams.set('status', status);
+                    if (address) url.searchParams.set('address', address);
+                    
+                    window.location.href = url.toString();
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

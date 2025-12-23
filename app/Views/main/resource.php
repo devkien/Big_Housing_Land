@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kho tài nguyên</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../Public/Css/style.css">
-    <script src="../Public/Js/script.js"></script>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
 <body>
     <div class="app-container" style="background: white;">
 
         <header class="resource-header">
-            <a href="<?= BASE_URL ?>/superadmin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="<?= BASE_URL ?>/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="resource-title">Kho tài nguyên</div>
             <div class="header-icon-btn"></div>
         </header>
@@ -22,7 +22,7 @@
         <div class="tabs-container">
             <button class="tab-btn active">Kho nhà đất</button>
 
-            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-rent'">Kho nhà cho thuê</button>
+            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/management-resource-rent'">Kho nhà cho thuê</button>
         </div>
 
         <div class="toolbar-section">
@@ -34,7 +34,6 @@
                 <thead>
                     <tr>
                         <th style="padding-left:15px; width: 60px;">LƯU</th>
-                        <th style="width: 60px;">GHI CHÚ</th>
                         <th style="width: 100px;">MÃ TÀI NGUYÊN</th>
                         <th style="width: 100px;">THỜI GIAN</th>
                         <th style="width: 120px;">HIỆN TRẠNG</th>
@@ -69,9 +68,8 @@
                                 $address = htmlspecialchars($address);
                             }
                         ?>
-                            <tr onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
+                            <tr onclick="window.location.href='<?= BASE_URL ?>/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
                                 <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                                <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td><?= $code ?></td>
                                 <td><?= $created ?></td>
                                 <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>

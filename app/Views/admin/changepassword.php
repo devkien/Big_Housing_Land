@@ -29,7 +29,7 @@
             <?php require_once __DIR__ . '/../partials/alert.php'; ?>
         </div>
 
-        <form method="post" action="<?= BASE_URL ?>/changepassword">
+        <form method="post" action="<?= BASE_URL ?>/admin/changepassword">
 
             <div class="edit-form-group" style="margin-bottom: 20px;">
                 <div class="edit-label-row">

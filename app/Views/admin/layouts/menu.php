@@ -19,7 +19,7 @@
         <span>QL khách-<br>Tự khớp</span>
     </div>
 
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/report_list'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/admin/report_list'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Vector (3).png" alt=""></div>
         <span>Báo cáo<br>dẫn khách</span>
     </div>

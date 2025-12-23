@@ -64,9 +64,9 @@ class SuperAdminController extends Controller
                 'ho_ten' => trim($_POST['ho_ten'] ?? ''),
                 'so_dien_thoai' => trim($_POST['so_dien_thoai'] ?? ''),
                 'email' => trim($_POST['email'] ?? ''),
-                'nam_sinh' => trim($_POST['nam_sinh'] ?? null),
-                'so_cccd' => trim($_POST['so_cccd'] ?? null),
-                'dia_chi' => trim($_POST['dia_chi'] ?? null),
+                'nam_sinh' => trim($_POST['nam_sinh'] ?? ''),
+                'so_cccd' => trim($_POST['so_cccd'] ?? ''),
+                'dia_chi' => trim($_POST['dia_chi'] ?? ''),
             ];
 
             if (empty($data['so_dien_thoai'])) {

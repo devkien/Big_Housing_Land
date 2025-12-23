@@ -28,6 +28,72 @@ class MainController extends Controller
     {
         require_once __DIR__ . '/../../core/Auth.php';
         $user = \Auth::user();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Models/Customer.php';
+
+            $ten_khach = trim($_POST['ten_khach'] ?? '');
+            $sdt_khach = trim($_POST['sdt_khach'] ?? '');
+            
+            if (empty($ten_khach)) {
+                $_SESSION['error'] = 'Vui lòng nhập tên khách hàng.';
+                header('Location: ' . BASE_URL . '/profile');
+                exit;
+            }
+
+            $data = [
+                'user_id' => $user['id'],
+                'ten_khach' => $ten_khach,
+                'nam_sinh' => trim($_POST['nam_sinh_khach'] ?? ''),
+                'sdt_khach' => $sdt_khach,
+                'so_cccd' => trim($_POST['cccd_khach'] ?? ''),
+                'ghi_chu' => trim($_POST['ghi_chu_nguoi_dan'] ?? '')
+            ];
+
+            $customerId = Customer::create($data);
+
+            if ($customerId) {
+                // Xử lý upload ảnh
+                if (!empty($_FILES['images'])) {
+                    $files = $_FILES['images'];
+                    $count = count($files['name']);
+                    // Giới hạn tối đa 3 ảnh như UI
+                    $count = min($count, 3);
+
+                    $uploadDir = 'uploads/customers/' . $customerId . '/';
+                    $absDir = __DIR__ . '/../../public/' . $uploadDir;
+                    
+                    if (!is_dir($absDir)) {
+                        mkdir($absDir, 0755, true);
+                    }
+
+                    for ($i = 0; $i < $count; $i++) {
+                        if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                            $tmpName = $files['tmp_name'][$i];
+                            $name = basename($files['name'][$i]);
+                            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                            
+                            if (in_array($ext, $allowed)) {
+                                $newName = uniqid() . '.' . $ext;
+                                if (move_uploaded_file($tmpName, $absDir . $newName)) {
+                                    Customer::addImage($customerId, $uploadDir . $newName);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $_SESSION['success'] = 'Báo cáo thành công.';
+                header('Location: ' . BASE_URL . '/profile');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Có lỗi xảy ra khi lưu dữ liệu.';
+                header('Location: ' . BASE_URL . '/profile');
+                exit;
+            }
+        }
+
         $this->view('main/profile', ['user' => $user]);
     }
 
@@ -176,5 +242,151 @@ class MainController extends Controller
             'displayRole' => $displayRole,
             'officeBadge' => $officeBadge
         ]);
+    }
+
+    //Dau khach lay du lieu xem vao kho tai nguyen
+    public function resource()
+    {
+        // list kho_nha_dat
+        require_once __DIR__ . '/../Models/Property.php';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        // prefer address as explicit search term
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+
+        $this->view('main/resource', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address
+        ]);
+    }
+
+    public function resourceRent()
+    {
+        // list kho_cho_thue
+        require_once __DIR__ . '/../Models/Property.php';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_cho_thue', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
+
+        $this->view('main/resource-rent', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address
+        ]);
+    }
+
+    public function reportList()
+    {
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Models/Customer.php';
+            require_once __DIR__ . '/../Models/LeadReport.php';
+
+            $ten_khach = trim($_POST['ho_ten'] ?? '');
+            $sdt_khach = trim($_POST['so_dien_thoai'] ?? '');
+            
+            if (empty($ten_khach)) {
+                $_SESSION['error'] = 'Vui lòng nhập tên khách hàng.';
+                header('Location: ' . BASE_URL . '/report_list');
+                exit;
+            }
+
+            // Dữ liệu lưu vào bảng customers
+            $data = [
+                'ho_ten' => $ten_khach,
+                'nam_sinh' => trim($_POST['nam_sinh_khach'] ?? ''),
+                'so_dien_thoai' => $sdt_khach,
+                'cccd' => trim($_POST['cccd_khach'] ?? ''),
+                'note' => trim($_POST['ghi_chu_nguoi_dan'] ?? '') // Vẫn lưu ghi chú vào khách (nếu cần backup)
+            ];
+
+            $customerId = Customer::create($data);
+
+            if ($customerId) {
+                // Lưu vào bảng lead_reports
+                $reportData = [
+                    'user_id' => $user['id'],
+                    'customer_id' => $customerId,
+                    'note' => trim($_POST['ghi_chu_nguoi_dan'] ?? ''),
+                    'status' => 'cho_duyet'
+                ];
+                
+                LeadReport::create($reportData);
+
+                // Xử lý upload ảnh
+                if (!empty($_FILES['images'])) {
+                    $files = $_FILES['images'];
+                    $count = count($files['name']);
+                    // Giới hạn tối đa 3 ảnh như UI
+                    $count = min($count, 3);
+
+                    $uploadDir = 'uploads/customers/' . $customerId . '/';
+                    $absDir = __DIR__ . '/../../public/' . $uploadDir;
+                    
+                    if (!is_dir($absDir)) {
+                        mkdir($absDir, 0755, true);
+                    }
+
+                    for ($i = 0; $i < $count; $i++) {
+                        if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                            $tmpName = $files['tmp_name'][$i];
+                            $name = basename($files['name'][$i]);
+                            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                            
+                            if (in_array($ext, $allowed)) {
+                                $newName = uniqid() . '.' . $ext;
+                                if (move_uploaded_file($tmpName, $absDir . $newName)) {
+                                    Customer::addImage($customerId, $uploadDir . $newName);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $_SESSION['success'] = 'Báo cáo thành công.';
+                header('Location: ' . BASE_URL . '/report_list');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Có lỗi xảy ra khi lưu dữ liệu.';
+                header('Location: ' . BASE_URL . '/report_list');
+                exit;
+            }
+        }
+
+        $this->view('main/report_list', ['user' => $user]);
     }
 }
