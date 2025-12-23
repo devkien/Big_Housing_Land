@@ -7,6 +7,15 @@
     <title>Kho tài nguyên</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script>
+        // Mock CKEditor để tránh lỗi trong script.js vì trang này không cần bộ soạn thảo
+        window.ClassicEditor = {
+            create: function() {
+                // Trả về Promise không bao giờ resolve để script.js không làm gì tiếp theo
+                return new Promise(() => {});
+            }
+        };
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
@@ -68,8 +77,8 @@
                                 $address = htmlspecialchars($address);
                             }
                         ?>
-                            <tr onclick="window.location.href='<?= BASE_URL ?>/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
-                                <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                            <tr onclick="window.location.href='<?= BASE_URL ?>/detail?id=<?= htmlspecialchars($p['id']) ?>'">
+                                <td style="padding-left:15px;" onclick="event.stopPropagation()"><i class="fa-regular fa-bookmark icon-save"></i></td>
                                 <td><?= $code ?></td>
                                 <td><?= $created ?></td>
                                 <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>

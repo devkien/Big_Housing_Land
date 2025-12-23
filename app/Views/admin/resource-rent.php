@@ -7,6 +7,15 @@
     <title>Kho nhà cho thuê</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script>
+        // Mock CKEditor để tránh lỗi trong script.js vì trang này không cần bộ soạn thảo
+        window.ClassicEditor = {
+            create: function() {
+                // Trả về Promise không bao giờ resolve để script.js không làm gì tiếp theo
+                return new Promise(() => {});
+            }
+        };
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
@@ -25,7 +34,7 @@
         </div>
 
         <div class="toolbar-section">
-            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
+            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>    
             <div style="flex:1;"></div>
         </div>
 
@@ -71,9 +80,9 @@
                             }
                         ?>
                             <tr
-                                onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource-rent?property=<?= htmlspecialchars($p['id']) ?>'">
+                                onclick="window.location.href='<?= BASE_URL ?>/admin/detail?id=<?= htmlspecialchars($p['id']) ?>'">
                                 <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
-                                <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
+                                <td><i class="fa-regular fa-note-sticky icon-note" data-id="<?= $p['id'] ?>" data-status="<?= htmlspecialchars($p['trang_thai'] ?? '') ?>"></i></td>
                                 <td>
                                     <?= $code ?>
                                 </td>
@@ -182,12 +191,12 @@
                 <div class="filter-group">
                     <label class="filter-label">Chọn trạng thái mới</label>
                     <select id="edit-status-select" class="filter-select">
-                        <option value="Bán mạnh">Bán mạnh</option>
-                        <option value="Tạm dừng bán">Tạm dừng bán</option>
-                        <option value="Dừng bán">Dừng bán</option>
-                        <option value="Đã bán">Đã bán</option>
-                        <option value="Tăng chào">Tăng chào</option>
-                        <option value="Hạ chào">Hạ chào</option>
+                        <option value="ban_manh">Bán mạnh</option>
+                        <option value="tam_dung_ban">Tạm dừng bán</option>
+                        <option value="dung_ban">Dừng bán</option>
+                        <option value="da_ban">Đã bán</option>
+                        <option value="tang_chao">Tăng chào</option>
+                        <option value="ha_chao">Hạ chào</option>
                     </select>
                 </div>
 
@@ -205,13 +214,28 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const filterModal = document.getElementById('filter-modal');
+            const searchModal = document.getElementById('search-modal');
             const btnFilter = document.getElementById('btn-filter');
+            const btnSearch = document.getElementById('btn-search');
             const closeFilter = document.getElementById('close-filter');
+            const closeSearch = document.getElementById('close-search');
             const applyFilter = document.getElementById('apply-filter');
+            const applySearch = document.getElementById('apply-search');
+            const statusModal = document.getElementById('status-modal');
+            const closeStatusModal = document.getElementById('close-status-modal');
+            const iconNotes = document.querySelectorAll('.icon-note');
+            const saveStatusBtn = document.getElementById('save-status-btn');
+            let currentPropertyId = null;
 
             if (btnFilter) {
                 btnFilter.addEventListener('click', () => {
                     if (filterModal) filterModal.style.display = 'flex';
+                });
+            }
+
+            if (btnSearch) {
+                btnSearch.addEventListener('click', () => {
+                    if (searchModal) searchModal.style.display = 'flex';
                 });
             }
 
@@ -221,9 +245,75 @@
                 });
             }
 
+            if (closeSearch) {
+                closeSearch.addEventListener('click', () => {
+                    if (searchModal) searchModal.style.display = 'none';
+                });
+            }
+
+            if (closeStatusModal) {
+                closeStatusModal.addEventListener('click', () => {
+                    if (statusModal) statusModal.style.display = 'none';
+                });
+            }
+
+            if (iconNotes) {
+                iconNotes.forEach(icon => {
+                    icon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentPropertyId = icon.getAttribute('data-id');
+                        const currentStatus = icon.getAttribute('data-status');
+                        const select = document.getElementById('edit-status-select');
+                        if (select) select.value = currentStatus;
+                        if (statusModal) statusModal.style.display = 'flex';
+                    });
+                });
+            }
+
+            if (saveStatusBtn) {
+                saveStatusBtn.addEventListener('click', () => {
+                    if (!currentPropertyId) return;
+                    const newStatus = document.getElementById('edit-status-select').value;
+                    
+                    const formData = new FormData();
+                    formData.append('id', currentPropertyId);
+                    formData.append('status', newStatus);
+
+                    fetch('<?= BASE_URL ?>/admin/update-resource-status', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
+                            throw new Error('Lỗi server: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật trạng thái thành công!');
+                            location.reload();
+                        } else {
+                            alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Lỗi: ' + error.message);
+                    });
+                });
+            }
+
             window.addEventListener('click', (event) => {
                 if (event.target == filterModal) {
                     filterModal.style.display = 'none';
+                }
+                if (event.target == searchModal) {
+                    searchModal.style.display = 'none';
+                }
+                if (event.target == statusModal) {
+                    statusModal.style.display = 'none';
                 }
             });
 
@@ -237,6 +327,19 @@
 
                     if (status && status !== 'all') url.searchParams.set('status', status);
                     if (address) url.searchParams.set('address', address);
+                    
+                    window.location.href = url.toString();
+                });
+            }
+
+            if (applySearch) {
+                applySearch.addEventListener('click', () => {
+                    const search = document.getElementById('search-input').value;
+                    
+                    const url = new URL('<?= BASE_URL ?>/admin/management-resource-rent', window.location.origin);
+                    url.searchParams.set('page', '1');
+
+                    if (search) url.searchParams.set('q', search);
                     
                     window.location.href = url.toString();
                 });

@@ -391,6 +391,11 @@ class AdminController extends Controller
 
         $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
 
+        // Lấy danh sách bộ sưu tập để hiển thị trong modal
+        $db = \Database::connect();
+        $stmt = $db->query("SELECT * FROM collections WHERE trang_thai = 1 ORDER BY id DESC");
+        $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         $this->view('admin/resource', [
             'properties' => $properties,
             'page' => $page,
@@ -399,7 +404,8 @@ class AdminController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            'collections' => $collections
         ]);
     }
 
@@ -445,7 +451,7 @@ class AdminController extends Controller
         $pages = (int)ceil($total / $perPage);
         $offset = ($page - 1) * $perPage;
 
-        $reports = LeadReport::getAll($perPage, $offset, $search);
+        $reports = LeadReport::getList($perPage, $offset, $search);
 
         $this->view('admin/report_list', [
             'reports' => $reports,
@@ -468,7 +474,7 @@ class AdminController extends Controller
             exit;
         }
 
-        $report = LeadReport::findByIdWithDetails($id);
+        $report = LeadReport::getById($id);
 
         if (!$report) {
             $_SESSION['error'] = 'Không tìm thấy báo cáo.';
@@ -479,5 +485,333 @@ class AdminController extends Controller
         $this->view('admin/report_customer', [
             'report' => $report,
         ]);
+    }
+
+    public function updateResourceStatus()
+    {
+        // Chỉ xử lý method POST
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'] ?? null;
+            $status = $_POST['status'] ?? null;
+
+            if ($id && $status) {
+                // Sử dụng Database class trực tiếp để tránh lỗi nếu Model chưa có hàm update
+                $db = \Database::connect();
+                $sql = "UPDATE properties SET trang_thai = :status WHERE id = :id";
+                $stmt = $db->prepare($sql);
+                $result = $stmt->execute([':status' => $status, ':id' => $id]);
+
+                if ($result) {
+                    echo json_encode(['success' => true]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Lỗi khi cập nhật cơ sở dữ liệu']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Thiếu ID hoặc trạng thái']);
+            }
+            exit;
+        }
+    }
+
+    public function detail()
+    {
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if ($id <= 0) {
+            header('Location: ' . BASE_URL . '/admin/management-resource');
+            exit;
+        }
+
+        $db = \Database::connect();
+        
+        // Lấy thông tin bất động sản và người đăng
+        $sql = "SELECT p.*, u.ho_ten as user_name, u.so_dien_thoai as user_phone, u.avatar as user_avatar, u.phong_ban 
+                FROM properties p 
+                LEFT JOIN users u ON p.user_id = u.id 
+                WHERE p.id = :id";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $property = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$property) {
+             header('Location: ' . BASE_URL . '/admin/management-resource');
+             exit;
+        }
+
+        // Lấy hình ảnh/media
+        require_once __DIR__ . '/../Models/Property.php';
+        $media = [];
+        if (method_exists('Property', 'getMedia')) {
+            $media = Property::getMedia($id);
+        } else {
+             $sqlMedia = "SELECT * FROM property_media WHERE property_id = :id";
+             $stmtMedia = $db->prepare($sqlMedia);
+             $stmtMedia->execute([':id' => $id]);
+             $media = $stmtMedia->fetchAll(PDO::FETCH_ASSOC);
+        }
+        $property['media'] = $media;
+
+        $this->view('admin/detail', ['property' => $property]);
+    }
+
+    public function addToCollection()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $propertyId = $_POST['property_id'] ?? null;
+            // Luôn đảm bảo collectionIds là một mảng, kể cả khi không có checkbox nào được chọn
+            $collectionIds = $_POST['collection_ids'] ?? [];
+
+            if ($propertyId) {
+                $db = \Database::connect();
+                try {
+                    $db->beginTransaction();
+
+                    // 1. Xóa tất cả các liên kết cũ của tài nguyên này
+                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE property_id = ?");
+                    $delStmt->execute([$propertyId]);
+
+                    // 2. Thêm lại các liên kết mới được chọn
+                    if (!empty($collectionIds)) {
+                        $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, property_id) VALUES (?, ?)");
+                        foreach ($collectionIds as $cid) {
+                            $insStmt->execute([(int)$cid, $propertyId]);
+                        }
+                    }
+
+                    $db->commit();
+                    echo json_encode(['success' => true]);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    echo json_encode(['success' => false, 'message' => 'Lỗi cơ sở dữ liệu: ' . $e->getMessage()]);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Thiếu ID tài nguyên.']);
+            }
+            exit;
+        }
+    }
+
+    public function getPropertyCollections()
+    {
+        header('Content-Type: application/json');
+        $id = $_GET['id'] ?? 0;
+        if ($id) {
+            $db = \Database::connect();
+            try {
+                $stmt = $db->prepare("SELECT collection_id FROM collection_items WHERE property_id = ?");
+                $stmt->execute([$id]);
+                $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                echo json_encode(['success' => true, 'collection_ids' => $ids]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
+
+    public function collection()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        // Lấy danh sách bộ sưu tập (giả sử Admin thấy hết hoặc logic tương tự SuperAdmin)
+        $collections = Collection::allWithCount($search);
+
+        $this->view('admin/collection', [
+            'collections' => $collections,
+            'search' => $search
+        ]);
+    }
+
+    public function creCollection()
+    {
+        // Handle POST (form submit)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Models/Collection.php';
+            require_once __DIR__ . '/../Helpers/functions.php';
+            require_once __DIR__ . '/../../core/Auth.php';
+
+            $name = isset($_POST['ten_bo_suu_tap']) ? trim($_POST['ten_bo_suu_tap']) : '';
+            $mo_ta = isset($_POST['mo_ta']) ? trim($_POST['mo_ta']) : null;
+
+            $user = \Auth::user();
+            $userId = $user['id'] ?? null;
+
+            $uploadPath = __DIR__ . '/../../public/uploads/collections';
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0755, true);
+            }
+
+            $savedPath = null;
+            if (!empty($_FILES['anh_dai_dien']) && $_FILES['anh_dai_dien']['error'] === UPLOAD_ERR_OK) {
+                $tmp = $_FILES['anh_dai_dien']['tmp_name'];
+                $orig = basename($_FILES['anh_dai_dien']['name']);
+                $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                $filename = uniqid('coll_') . '.' . $ext;
+                $dest = $uploadPath . '/' . $filename;
+                if (@move_uploaded_file($tmp, $dest)) {
+                    $savedPath = 'uploads/collections/' . $filename;
+                }
+            }
+
+            $data = [
+                'user_id' => $userId,
+                'ten_bo_suu_tap' => $name,
+                'anh_dai_dien' => $savedPath,
+                'mo_ta' => $mo_ta,
+                'is_default' => 0,
+                'trang_thai' => 1,
+            ];
+
+            $created = Collection::create($data);
+            if ($created) {
+                header('Location: ' . BASE_URL . '/admin/collection');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Không thể tạo bộ sưu tập';
+            }
+        }
+
+        $this->view('admin/cre-collection');
+    }
+
+    public function renameCollection()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $name = isset($_POST['ten_bo_suu_tap']) ? trim($_POST['ten_bo_suu_tap']) : '';
+
+        if ($id <= 0 || $name === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Dữ liệu không hợp lệ']);
+            exit;
+        }
+
+        $ok = Collection::updateName($id, $name);
+        echo json_encode(['ok' => (bool)$ok]);
+        exit;
+    }
+
+    public function deleteCollection()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'ID không hợp lệ']);
+            exit;
+        }
+
+        $ok = Collection::deleteById($id);
+        echo json_encode(['ok' => (bool)$ok]);
+        exit;
+    }
+
+    public function notification()
+    {
+        require_once __DIR__ . '/../Models/DealPost.php';
+
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 20;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $offset = ($page - 1) * $perPage;
+
+        $posts = DealPost::getList($perPage, $offset, $search);
+
+        $this->view('admin/notification', [
+            'posts' => $posts,
+            'page' => $page,
+            'search' => $search
+        ]);
+    }
+
+    public function creNotification()
+    {
+        require_once __DIR__ . '/../Helpers/functions.php';
+        $user = \Auth::user();
+
+        // Handle POST (create new deal post)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Models/DealPost.php';
+            $userId = $user['id'] ?? null;
+
+            $tieu_de = isset($_POST['tieu_de']) ? trim($_POST['tieu_de']) : null;
+            $noi_dung = isset($_POST['noi_dung']) ? trim($_POST['noi_dung']) : '';
+            $ma_nhan_vien = isset($_POST['ma_nhan_vien']) ? trim($_POST['ma_nhan_vien']) : null;
+
+            $errors = [];
+            // Validation: title and content required
+            if (empty($tieu_de)) {
+                $errors[] = 'Tiêu đề không được để trống.';
+            }
+            if (empty(strip_tags($noi_dung))) {
+                $errors[] = 'Nội dung không được để trống.';
+            }
+
+            // Validate files if provided
+            $saved = [];
+            $uploadDir = __DIR__ . '/../../public/uploads/deal_posts';
+            if (!is_dir($uploadDir)) @mkdir($uploadDir, 0755, true);
+
+            if (!empty($_FILES['images']) && is_array($_FILES['images']['tmp_name'])) {
+                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'];
+                $maxSize = 20 * 1024 * 1024; // 20MB
+                for ($i = 0; $i < count($_FILES['images']['tmp_name']); $i++) {
+                    $err = $_FILES['images']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                    if ($err === UPLOAD_ERR_NO_FILE) continue;
+                    if ($err !== UPLOAD_ERR_OK) {
+                        $errors[] = 'Lỗi upload file ' . ($_FILES['images']['name'][$i] ?? '') . '.';
+                        continue;
+                    }
+                    $tmp = $_FILES['images']['tmp_name'][$i];
+                    if (filesize($tmp) > $maxSize) {
+                        $errors[] = 'Kích thước file quá lớn (max 20MB): ' . ($_FILES['images']['name'][$i] ?? '');
+                        continue;
+                    }
+                    // More robust validation if needed
+                    $orig = basename($_FILES['images']['name'][$i]);
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                    $filename = uniqid('deal_') . '.' . $ext;
+                    $dest = $uploadDir . '/' . $filename;
+                    if (@move_uploaded_file($tmp, $dest)) {
+                        $saved[] = 'uploads/deal_posts/' . $filename;
+                    } else {
+                        $errors[] = 'Không thể lưu file: ' . $orig;
+                    }
+                }
+            }
+
+            if (empty($errors)) {
+                $postId = DealPost::create(['user_id' => $userId, 'tieu_de' => $tieu_de, 'noi_dung' => $noi_dung]);
+                if ($postId && !empty($saved)) {
+                    DealPost::addImages($postId, $saved);
+                }
+                header('Location: ' . BASE_URL . '/admin/notification');
+                exit;
+            }
+
+            $this->view('admin/cre-notification', ['errors' => $errors, 'old' => $_POST, 'user' => $user]);
+            return;
+        }
+
+        $this->view('admin/cre-notification', ['user' => $user]);
     }
 }

@@ -93,6 +93,10 @@ $router->get('/management-resource', 'MainController@resource', 'auth');
 $router->get('/management-resource-rent', 'MainController@resourceRent', 'auth');
 $router->get('/report_list', 'MainController@reportList', 'auth');
 $router->post('/report_list', 'MainController@reportList', 'auth');
+$router->get('/report_customer', 'MainController@reportCustomerDetail', 'auth');
+$router->get('/detail', 'MainController@detail', 'auth');
+$router->get('/collection', 'MainController@collection', 'auth');
+$router->get('/cre-collection', 'MainController@creCollection', 'auth');
 
 
 
@@ -111,9 +115,22 @@ $router->get('/admin/management-resource', 'AdminController@resource', 'role:adm
 $router->get('/admin/management-resource-rent', 'AdminController@resourceRent', 'role:admin,super_admin');
 $router->get('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
 $router->post('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
+$router->post('/admin/update-resource-status', 'AdminController@updateResourceStatus', 'role:admin,super_admin');
+$router->post('/admin/add-to-collection', 'AdminController@addToCollection', 'role:admin,super_admin');
+$router->get('/admin/get-property-collections', 'AdminController@getPropertyCollections', 'role:admin,super_admin');
+$router->get('/admin/detail', 'AdminController@detail', 'role:admin,super_admin');
 $router->get('/admin/report_list', 'AdminController@reportList', 'role:admin,super_admin');
 $router->get('/admin/report_customer', 'AdminController@reportCustomerDetail', 'role:admin,super_admin');
+$router->post('/admin/report_list', 'AdminController@reportList', 'role:admin,super_admin');
+$router->get('/admin/collection', 'AdminController@collection', 'role:admin,super_admin');
+$router->get('/admin/cre-collection', 'AdminController@creCollection', 'role:admin,super_admin');
+$router->post('/admin/cre-collection', 'AdminController@creCollection', 'role:admin,super_admin');
+$router->post('/admin/collection-rename', 'AdminController@renameCollection', 'role:admin,super_admin');
+$router->post('/admin/collection-delete', 'AdminController@deleteCollection', 'role:admin,super_admin');
 
+$router->get('/admin/notification', 'AdminController@notification', 'role:admin,super_admin');
+$router->get('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
+$router->post('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
 
 
 // ==================== SuperAdmin ====================
