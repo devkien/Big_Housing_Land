@@ -8,7 +8,7 @@
     <a href="<?= BASE_URL ?>/superadmin/info" id="nav-info">
         <img src="<?= BASE_URL ?>/icon/menuthongtin.png" alt="">
     </a>
-    <a href="#" class="nav-item" id="nav-notify">
+    <a href="<?= BASE_URL ?>/superadmin/notification" class="nav-item" id="nav-notify">
         <img src="<?= BASE_URL ?>/icon/menuthongbao.png" alt="">
     </a>
     <a href="<?= BASE_URL ?>/superadmin/profile" class="nav-item" id="nav-profile">

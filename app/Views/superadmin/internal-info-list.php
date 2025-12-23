@@ -25,6 +25,7 @@
             </div>
 
             <div style="overflow-x: auto;">
+                <input type="hidden" id="csrf-token" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
                 <table class="hr-table table-manage-info" style="width: 100%; min-width: 350px;">
                     <thead>
                         <tr>
@@ -37,120 +38,30 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="<?= BASE_URL ?>/superadmin/internal-info-edit"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #0033cc; cursor: pointer; transform: rotate(45deg);"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding-left: 15px; text-align: center;">
-                                <i class="fa-regular fa-trash-can icon-trash-red"></i>
-                            </td>
-                            <td style="text-align: center;">
-                                <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
-                            </td>
-                            <td><span class="text-id-blue">TC01</span></td>
-                            <td class="title-cell">Big Housing Land khởi đầu năm mới</td>
-                            <td>12/20/2025</td>
-                            <td style="padding-right: 15px; text-align: right;">
-                                <a href="edit_internal_info.html"><i class="fa-solid fa-pen icon-edit-black"></i></a>
-                            </td>
-                        </tr>
+                        <?php if (!empty($posts) && is_array($posts)): ?>
+                            <?php foreach ($posts as $p): ?>
+                                <tr data-id="<?= (int)$p['id'] ?>">
+                                    <td style="padding-left: 15px; text-align: center;">
+                                        <button class="btn-icon delete-btn" data-id="<?= (int)$p['id'] ?>" style="background:none;border:none;padding:0;cursor:pointer;">
+                                            <i class="fa-regular fa-trash-can icon-trash-red"></i>
+                                        </button>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
+                                    </td>
+                                    <td><span class="text-id-blue"><?= htmlspecialchars($p['ma_hien_thi'] ?? '') ?></span></td>
+                                    <td class="title-cell"><?= htmlspecialchars(mb_strimwidth(strip_tags($p['tieu_de'] ?? ''), 0, 80, '...')) ?></td>
+                                    <td><?= !empty($p['created_at']) ? date('m/d/Y', strtotime($p['created_at'])) : '' ?></td>
+                                    <td style="padding-right: 15px; text-align: right;">
+                                        <a href="<?= BASE_URL ?>/superadmin/internal-info-edit?id=<?= (int)$p['id'] ?>"><i class="fa-solid fa-pen icon-edit-black"></i></a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:20px;">Không có thông tin nội bộ</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -261,6 +172,54 @@
                     this.style.transform = isPinned ? 'rotate(0deg)' : 'rotate(45deg)';
                 });
             });
+
+            // Xử lý xóa bài
+            let selectedDeleteId = null;
+            const deleteModal = document.getElementById('delete-modal');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    selectedDeleteId = this.getAttribute('data-id');
+                    if (deleteModal) deleteModal.style.display = 'flex';
+                });
+            });
+
+            if (cancelDeleteBtn) cancelDeleteBtn.onclick = () => {
+                selectedDeleteId = null;
+                deleteModal.style.display = 'none';
+            };
+
+            if (confirmDeleteBtn) confirmDeleteBtn.onclick = function() {
+                if (!selectedDeleteId) return;
+                const csrf = document.getElementById('csrf-token') ? document.getElementById('csrf-token').value : '';
+                fetch(window.location.pathname, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: selectedDeleteId,
+                        _csrf: csrf
+                    })
+                }).then(r => r.json()).then(data => {
+                    if (data && data.ok) {
+                        // remove row from table
+                        const row = document.querySelector('tr[data-id="' + selectedDeleteId + '"]');
+                        if (row) row.remove();
+                    } else {
+                        alert('Xóa không thành công');
+                    }
+                }).catch(err => {
+                    alert('Lỗi server khi xóa');
+                }).finally(() => {
+                    selectedDeleteId = null;
+                    if (deleteModal) deleteModal.style.display = 'none';
+                });
+            };
         });
     </script>
 </body>

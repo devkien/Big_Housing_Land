@@ -115,24 +115,6 @@
                 </div>
             </article>
 
-            <article class="post-card" style="margin-top: 10px;">
-                <div class="user-row">
-                    <div class="user-left">
-                        <img src="../icon/menuanhdaidien.png" class="user-avatar">
-                        <div class="user-info">
-                            <div class="user-name">TP Nguyễn Kim Ngàn - NPHN - 888</div>
-                            <div class="rating-stars" style="color: #FFC107;">
-                                8 giờ trước • Khách cần mua gấp
-                            </div>
-                        </div>
-                    </div>
-                    <div style="color: #666;"><i class="fa-solid fa-ellipsis"></i></div>
-                </div>
-                <div class="post-content">
-                    <strong>NHÀ PHỐ VIỆT NAM</strong> ...
-                </div>
-            </article>
-
         </div>
         <div id="bottom-nav-container">
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>

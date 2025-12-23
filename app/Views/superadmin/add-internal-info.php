@@ -25,32 +25,41 @@
 
         <div style="padding: 0 15px 100px 15px;">
 
-            <label class="label-bold-black">Tiêu đề thông tin</label>
-            <div style="background: white; padding: 5px; border-radius: 4px;">
-                <input type="text" class="input-title-box" placeholder="Nhập tiêu đề thông tin" style="padding: 10px; box-shadow: none;">
-                <div class="input-counter-right" style="padding-right: 10px; padding-bottom: 5px;">0/1500 kí tự</div>
-            </div>
+            <?php require_once __DIR__ . '/../../Helpers/functions.php'; ?>
+            <form action="<?= BASE_URL ?>/superadmin/add-internal-info" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
 
-            <label class="label-bold-black">Nội dung thông tin nội bộ</label>
-            <textarea id="editor-content" placeholder="Nhập văn bản thông tin"></textarea>
-
-            <div class="upload-box-large-center" id="upload-box" style="position: relative; cursor: pointer;">
-                <div class="upload-hint-text" style="z-index: 2;">
-                    <i class="fa-solid fa-circle-info"></i> Tải hình ảnh/video
+                <div class="alert-wrapper">
+                    <?php require_once __DIR__ . '/../partials/alert.php'; ?>
                 </div>
 
-                <i class="fa-solid fa-camera icon-camera-large" id="icon-camera"></i>
-                <i class="fa-solid fa-plus icon-plus-absolute" id="icon-plus"></i>
-
-                <div class="upload-preview-container" id="preview-container" style="display: none;">
-                    <img src="" class="upload-preview-img" id="preview-img" alt="Preview" style="display: none;">
-                    <video controls class="upload-preview-img" id="preview-video" style="display: none;"></video>
-                    <button class="btn-remove-image" id="btn-remove-img" type="button"><i class="fa-solid fa-xmark"></i></button>
+                <label class="label-bold-black">Tiêu đề thông tin</label>
+                <div style="background: white; padding: 5px; border-radius: 4px;">
+                    <input type="text" name="tieu_de" class="input-title-box" placeholder="Nhập tiêu đề thông tin" style="padding: 10px; box-shadow: none;" value="<?= old('tieu_de') ?>">
+                    <div class="input-counter-right" style="padding-right: 10px; padding-bottom: 5px;">0/1500 kí tự</div>
                 </div>
-                <input type="file" id="file-upload-internal" style="display: none;" accept="image/*,video/*">
-            </div>
 
-            <button class="btn-submit-blue" style="background-color: #0033cc;">Đăng</button>
+                <label class="label-bold-black">Nội dung thông tin nội bộ</label>
+                <textarea id="editor-content" name="noi_dung" placeholder="Nhập văn bản thông tin"><?= old('noi_dung') ?></textarea>
+
+                <div class="upload-box-large-center" id="upload-box" style="position: relative; cursor: pointer;">
+                    <div class="upload-hint-text" style="z-index: 2;">
+                        <i class="fa-solid fa-circle-info"></i> Tải hình ảnh/video
+                    </div>
+
+                    <i class="fa-solid fa-camera icon-camera-large" id="icon-camera"></i>
+                    <i class="fa-solid fa-plus icon-plus-absolute" id="icon-plus"></i>
+
+                    <div class="upload-preview-container" id="preview-container" style="display: none;">
+                        <img src="" class="upload-preview-img" id="preview-img" alt="Preview" style="display: none;">
+                        <video controls class="upload-preview-img" id="preview-video" style="display: none;"></video>
+                        <button class="btn-remove-image" id="btn-remove-img" type="button"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <input type="file" id="file-upload-internal" name="media[]" style="display: none;" accept="image/*,video/*" multiple>
+                </div>
+
+                <button type="submit" class="btn-submit-blue" style="background-color: #0033cc;">Đăng</button>
+            </form>
 
         </div>
 

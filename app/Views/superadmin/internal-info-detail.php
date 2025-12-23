@@ -20,19 +20,38 @@
         <div style="padding-bottom: 80px;">
 
             <div class="article-container">
-                <div class="article-title">
-                    Big Housing Land Khởi Đầu Năm Mới Hứng Khởi 2025
-                </div>
+                <?php
+                $post = $post ?? null;
+                if ($post):
+                    $title = $post['tieu_de'] ?? 'No title';
+                    $content = $post['noi_dung'] ?? '';
+                    $created = !empty($post['created_at']) ? date('d/m/Y', strtotime($post['created_at'])) : '';
+                    $images = $post['images'] ?? [];
+                ?>
+                    <div class="article-title"><?= htmlspecialchars($title) ?></div>
 
-                <div class="article-content">
-                    Mỗi dịp Tết đến xuân về, Big Housing land cũng như các doanh nghiệp thường tổ chức hoạt động du xuân đầu năm nhằm tạo tinh thần hứng khởi, gắn kết tập thể và khởi động cho một năm làm việc đầy nhiệt huyết. Hòa chung không khí đó, cán bộ nhân viên Big Housing Land đã có chuyến du xuân – tham quan – <span style="text-decoration: underline;">du lịch đầu năm</span> đầy ý nghĩa tại nhiều địa điểm nổi tiếng. Đây không chỉ là hoạt động truyền thống mà còn là nét văn hóa đẹp thể hiện sự quan tâm của lãnh đạo Big Housing Land đối với đời sống tinh thần của nhân sự.
-                </div>
+                    <div class="article-meta" style="color:#666; font-size:13px; margin-bottom:8px;"><?= htmlspecialchars($created) ?></div>
 
-                <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=800&auto=format&fit=crop" class="article-image" alt="Ảnh du xuân">
+                    <div class="article-content">
+                        <?= $content ?>
+                    </div>
 
-                <div class="article-content">
-                    Chuyến du xuân đầu năm của Big Housing Land được tổ chức bài bản, chu đáo với lịch trình tham quan các địa điểm văn hóa – du lịch nổi bật. Tại mỗi điểm dừng chân, cán bộ nhân viên cùng nhau chụp ảnh lưu niệm, khám phá cảnh đẹp, thưởng thức ẩm thực đặc trưng và tham gia các hoạt động tập thể vui tươi, sôi nổi.
-                </div>
+                    <?php if (!empty($images)): ?>
+                        <?php foreach ($images as $img):
+                            $path = $img['image_path'] ?? $img['media_path'] ?? '';
+                            if (preg_match('/^https?:\/\//i', $path) || strpos($path, '/') === 0) {
+                                $imgUrl = $path;
+                            } else {
+                                $imgUrl = rtrim(BASE_URL, '/') . '/' . ltrim($path, '/');
+                            }
+                        ?>
+                            <img src="<?= htmlspecialchars($imgUrl) ?>" class="article-image" alt="">
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+
+                <?php else: ?>
+                    <div style="padding:30px; text-align:center; color:#666;">Bài viết không tồn tại.</div>
+                <?php endif; ?>
             </div>
 
         </div>
