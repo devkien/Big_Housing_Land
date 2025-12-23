@@ -91,6 +91,8 @@ class ResourceController extends Controller
                 'loai_bds' => $loai_bds,
                 'loai_kho' => $loai_kho,
                 'phap_ly' => $phap_ly,
+                // If phap_ly indicates there is a title ('co_so'), capture the mã số sổ; otherwise store null
+                'ma_so_so' => ($phap_ly === 'co_so') ? (trim($_POST['ma_so_so'] ?? '') ?: null) : null,
                 'dien_tich' => $makeFloat($_POST['dien_tich'] ?? null),
                 'don_vi_dien_tich' => $don_vi,
                 'chieu_dai' => $makeFloat($_POST['chieu_dai'] ?? null),
