@@ -7,6 +7,15 @@
     <title>Kho nhà cho thuê</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script>
+        // Mock CKEditor để tránh lỗi trong script.js vì trang này không cần bộ soạn thảo
+        window.ClassicEditor = {
+            create: function() {
+                // Trả về Promise không bao giờ resolve để script.js không làm gì tiếp theo
+                return new Promise(() => {});
+            }
+        };
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 

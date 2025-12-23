@@ -68,6 +68,7 @@ class LeadReport extends Model
     public static function findByIdWithDetails($id)
     {
         $db = self::db();
+<<<<<<< Updated upstream
         $sql = "SELECT lr.*, 
                        u.ho_ten as ten_nguoi_gui, 
                        u.so_dien_thoai as sdt_nguoi_gui,
@@ -75,6 +76,9 @@ class LeadReport extends Model
                        c.so_dien_thoai as sdt_khach,
                        c.nam_sinh as nam_sinh_khach,
                        c.cccd as cccd_khach
+=======
+        $sql = "SELECT lr.*, c.*, u.ho_ten AS sender_name, u.so_dien_thoai AS sender_phone
+>>>>>>> Stashed changes
                 FROM lead_reports lr
                 LEFT JOIN users u ON lr.user_id = u.id
                 LEFT JOIN customers c ON lr.customer_id = c.id
