@@ -8,6 +8,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../Public/Css/style.css">
     <script src="../Public/Js/script.js"></script>
+    <?php require_once __DIR__ . '/../../Helpers/functions.php'; ?>
+    <meta name="csrf-token" content="<?= csrf_token() ?>">
+    <script>
+        window.BASE_PATH = '<?= BASE_PATH ?>';
+    </script>
 </head>
 
 <body>
@@ -69,10 +74,10 @@
                                 $address = htmlspecialchars($address);
                             }
                         ?>
-                            <tr onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource?property=<?= htmlspecialchars($p['id']) ?>'">
+                            <tr data-id="<?= htmlspecialchars($p['id']) ?>">
                                 <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                                <td><?= $code ?></td>
+                                <td onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
                                 <td><?= $created ?></td>
                                 <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>
                                 <td style="text-align:right; padding-right:15px;"><?= $address ?></td>

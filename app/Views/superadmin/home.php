@@ -13,8 +13,8 @@
     <div class="app-container" style="background-color: #E8F4FF;">
 
         <header class="home-header">
-            <form class="search-bar" action="resource.html" method="GET">
-                <input type="text" name="keyword" placeholder="Nhập thông tin tìm kiếm...">
+            <form class="search-bar" action="<?= BASE_URL ?>/superadmin/management-resource" method="GET">
+                <input type="text" name="q" placeholder="Tìm kiếm mã tài nguyên...">
                 <button type="submit" style="border: none; background: transparent; padding: 0; cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </header>

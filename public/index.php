@@ -162,9 +162,12 @@ $router->post('/superadmin/update-personnel', 'MemberController@updatepersonnel'
 
 // Resource  management routes
 $router->get('/superadmin/management-resource', 'ResourceController@resource', 'role:super_admin');
+$router->get('/superadmin/management-resource-detail', 'ResourceController@resourceDetail', 'role:super_admin');
 $router->get('/superadmin/management-resource-rent', 'ResourceController@resourceRent', 'role:super_admin');
 $router->get('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
 $router->post('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
+// Endpoint to update property status via AJAX
+$router->post('/superadmin/property-update-status', 'ResourceController@updateStatus', 'role:super_admin');
 
 // Collection management routes
 $router->get('/superadmin/collection', 'CollectionController@collection', 'role:super_admin');
@@ -173,6 +176,34 @@ $router->post('/superadmin/cre-collection', 'CollectionController@creCollection'
 // AJAX endpoints for collection management
 $router->post('/superadmin/collection-rename', 'CollectionController@renameCollection', 'role:super_admin');
 $router->post('/superadmin/collection-delete', 'CollectionController@deleteCollection', 'role:super_admin');
+
+$router->get('/superadmin/auto-match', 'AutoMatchController@index', 'role:super_admin');
+$router->post('/superadmin/auto-match', 'AutoMatchController@autoMatch', 'role:super_admin');
+// Lead reports
+$router->get('/superadmin/report-list', 'LeadReportController@list', 'role:super_admin');
+$router->get('/superadmin/report-customer', 'LeadReportController@detail', 'role:super_admin');
+// Notifications (deal posts)
+$router->get('/superadmin/notification', 'NotificationController@notification', 'role:super_admin');
+$router->get('/superadmin/cre-notification', 'NotificationController@creNotification', 'role:super_admin');
+$router->post('/superadmin/cre-notification', 'NotificationController@creNotification', 'role:super_admin');
+
+$router->get('/superadmin/policy', 'PolicyController@index', 'role:super_admin');
+
+
+// Information routes
+$router->get('/superadmin/info', 'InformationController@info', 'role:super_admin,admin');
+$router->get('/superadmin/add-internal-info', 'InformationController@addInternalInfo', 'role:super_admin,admin');
+$router->post('/superadmin/add-internal-info', 'InformationController@addInternalInfo', 'role:super_admin,admin');
+$router->get('/superadmin/internal-info-list', 'InformationController@internalInfoList', 'role:super_admin,admin');
+$router->post('/superadmin/internal-info-list', 'InformationController@internalInfoList', 'role:super_admin,admin');
+
+$router->get('/superadmin/internal-info-detail', 'InformationController@InternalInfoDetail', 'role:super_admin,admin');
+$router->get('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');
+$router->post('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');
+
+
+
+
 
 /**
  * ============================

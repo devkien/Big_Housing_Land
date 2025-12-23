@@ -59,12 +59,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const statusSelectEdit = document.getElementById('edit-status-select');
         let currentRowToEdit = null;
 
-        // Gán sự kiện click cho tất cả icon note (dùng event delegation)
-        document.body.addEventListener('click', function (e) {
-            if (e.target && e.target.classList.contains('icon-note')) {
+        // Gán sự kiện click trực tiếp cho từng icon note để gọi stopPropagation
+        // (delegation on body happened too late and row onclick still executed)
+        const noteIcons = document.querySelectorAll('.icon-note');
+        noteIcons.forEach(icon => {
+            icon.addEventListener('click', function (e) {
                 e.stopPropagation(); // Ngăn chặn sự kiện click của dòng (chuyển trang)
-                currentRowToEdit = e.target.closest('tr');
-
+                currentRowToEdit = this.closest('tr');
                 if (currentRowToEdit) {
                     const badge = currentRowToEdit.querySelector('.status-badge');
                     if (badge && statusSelectEdit) {
@@ -72,18 +73,55 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     statusModal.style.display = "flex";
                 }
-            }
+            });
         });
 
         if (btnCloseStatus) btnCloseStatus.onclick = () => { statusModal.style.display = "none"; }
 
         if (btnSaveStatus) {
-            btnSaveStatus.onclick = () => {
-                if (currentRowToEdit && statusSelectEdit) {
-                    const badge = currentRowToEdit.querySelector('.status-badge');
-                    if (badge) badge.innerText = statusSelectEdit.value;
+            btnSaveStatus.onclick = async () => {
+                if (!currentRowToEdit || !statusSelectEdit) return;
+                const badge = currentRowToEdit.querySelector('.status-badge');
+                const id = currentRowToEdit.dataset.id ? parseInt(currentRowToEdit.dataset.id, 10) : null;
+                const displayValue = statusSelectEdit.value;
+
+                // Map display labels to enum values (same as server mapping)
+                const map = {
+                    'Bán mạnh': 'ban_manh',
+                    'Tạm dừng bán': 'tam_dung_ban',
+                    'Dừng bán': 'dung_ban',
+                    'Đã bán': 'da_ban',
+                    'Tăng chào': 'tang_chao',
+                    'Hạ chào': 'ha_chao'
+                };
+
+                const payload = {
+                    id: id,
+                    status: map[displayValue] || displayValue,
+                    _csrf: (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
+                };
+
+                const urlBase = (window.BASE_PATH || '');
+                const url = urlBase + '/superadmin/property-update-status';
+
+                try {
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await resp.json().catch(() => null);
+                    if (resp.ok && data && data.ok) {
+                        if (badge) badge.innerText = displayValue;
+                        statusModal.style.display = 'none';
+                    } else {
+                        alert((data && data.message) ? data.message : 'Không thể cập nhật trạng thái');
+                    }
+                } catch (err) {
+                    console.error('Status update failed', err);
+                    alert('Lỗi khi cập nhật trạng thái. Vui lòng thử lại.');
                 }
-                statusModal.style.display = "none";
             };
         }
     }
@@ -94,17 +132,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnConfirmSaveCollection = document.getElementById('confirm-save-collection');
     let currentIconToSave = null;
 
-    document.body.addEventListener('click', function (e) {
-        if (e.target && e.target.classList.contains('icon-save')) {
+    // Attach direct click handlers to each icon-save so we can stopPropagation early
+    const saveIcons = document.querySelectorAll('.icon-save');
+    saveIcons.forEach(icon => {
+        icon.addEventListener('click', function (e) {
             e.stopPropagation(); // Ngăn chặn sự kiện click của dòng (chuyển trang)
-            currentIconToSave = e.target;
+            currentIconToSave = this;
             if (saveCollectionModal) {
                 saveCollectionModal.style.display = "flex";
                 // Reset checkbox khi mở lại (hoặc load trạng thái cũ nếu có backend)
                 const checkboxes = saveCollectionModal.querySelectorAll('input[type="checkbox"]');
                 checkboxes.forEach(cb => cb.checked = false);
             }
-        }
+        });
     });
 
     if (btnCloseSaveCollection) {
@@ -1013,24 +1053,27 @@ function previewMedia(input) {
     }
 }
 
-ClassicEditor
-    .create(document.querySelector('#editor-content'), {
-        toolbar: {
-            items: [
-                'heading', '|',
-                'bold', 'italic', 'underline', '|',
-                'bulletedList', 'numberedList', '|',
-                'undo', 'redo'
-            ]
-        },
-        placeholder: 'Nhập văn bản thông tin...'
-    })
-    .then(editor => {
-        console.log('CKEditor đã sẵn sàng.', editor);
-    })
-    .catch(error => {
-        console.error('Lỗi khởi tạo CKEditor:', error);
-    });
+// Initialize CKEditor only if the script is loaded and the textarea exists
+if (typeof ClassicEditor !== 'undefined' && document.querySelector('#editor-content')) {
+    ClassicEditor
+        .create(document.querySelector('#editor-content'), {
+            toolbar: {
+                items: [
+                    'heading', '|',
+                    'bold', 'italic', 'underline', '|',
+                    'bulletedList', 'numberedList', '|',
+                    'undo', 'redo'
+                ]
+            },
+            placeholder: 'Nhập văn bản thông tin...'
+        })
+        .then(editor => {
+            console.log('CKEditor đã sẵn sàng.', editor);
+        })
+        .catch(error => {
+            console.error('Lỗi khởi tạo CKEditor:', error);
+        });
+}
 function previewMediaInternal(input) {
     var previewContainer = document.getElementById('media-preview-internal');
 

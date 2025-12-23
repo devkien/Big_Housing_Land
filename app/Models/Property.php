@@ -158,6 +158,24 @@ class Property extends Model
         return $rows;
     }
 
+    // Find a single property by its ma_hien_thi code
+    public static function findByMaHienThi(string $code)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT * FROM properties WHERE ma_hien_thi = ? LIMIT 1");
+        $stmt->execute([$code]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    // Update the trang_thai (status enum) for a property
+    public static function updateStatus(int $id, string $trang_thai)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("UPDATE properties SET trang_thai = ? WHERE id = ?");
+        return $stmt->execute([$trang_thai, $id]);
+    }
+
     public static function countByLoaiKho(string $loai_kho, ?string $search = null, ?string $trang_thai = null)
     {
         $db = self::db();

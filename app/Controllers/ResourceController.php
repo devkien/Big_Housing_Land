@@ -91,6 +91,8 @@ class ResourceController extends Controller
                 'loai_bds' => $loai_bds,
                 'loai_kho' => $loai_kho,
                 'phap_ly' => $phap_ly,
+                // If phap_ly indicates there is a title ('co_so'), capture the mã số sổ; otherwise store null
+                'ma_so_so' => ($phap_ly === 'co_so') ? (trim($_POST['ma_so_so'] ?? '') ?: null) : null,
                 'dien_tich' => $makeFloat($_POST['dien_tich'] ?? null),
                 'don_vi_dien_tich' => $don_vi,
                 'chieu_dai' => $makeFloat($_POST['chieu_dai'] ?? null),
@@ -214,11 +216,28 @@ class ResourceController extends Controller
         // prefer address as explicit search term
         $searchTerm = $address ?: $search;
 
-        $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
-        $pages = (int)ceil($total / $perPage);
-        $offset = ($page - 1) * $perPage;
-
-        $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+        // If search term looks like a resource code, try exact match on ma_hien_thi first
+        $properties = [];
+        if ($searchTerm) {
+            $code = trim($searchTerm);
+            $found = Property::findByMaHienThi($code);
+            if ($found) {
+                $total = 1;
+                $pages = 1;
+                $offset = 0;
+                $properties = [$found];
+            } else {
+                $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
+                $pages = (int)ceil($total / $perPage);
+                $offset = ($page - 1) * $perPage;
+                $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+            }
+        } else {
+            $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
+            $pages = (int)ceil($total / $perPage);
+            $offset = ($page - 1) * $perPage;
+            $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+        }
 
         $this->view('superadmin/resource', [
             'properties' => $properties,
@@ -260,5 +279,77 @@ class ResourceController extends Controller
             'status' => $status,
             'address' => $address
         ]);
+    }
+
+    public function resourceDetail()
+    {
+        $this->view('superadmin/resource-detail');
+    }
+
+    // AJAX handler to update property status
+    public function updateStatus()
+    {
+        // Expect JSON body: { id: int, status: 'ban_manh'|'tam_dung_ban'|..., _csrf: token }
+        require_once __DIR__ . '/../Helpers/functions.php';
+        // Read JSON payload
+        $body = file_get_contents('php://input');
+        $data = json_decode($body, true);
+
+        if (!$data) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => 'Invalid payload']);
+            return;
+        }
+
+        if (!verify_csrf($data['_csrf'] ?? null)) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token']);
+            return;
+        }
+
+        $id = isset($data['id']) ? (int)$data['id'] : 0;
+        $statusInput = trim($data['status'] ?? '');
+        if (!$id || $statusInput === '') {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        // Allow either display labels or internal enum values
+        $map = [
+            'Bán mạnh' => 'ban_manh',
+            'Tạm dừng bán' => 'tam_dung_ban',
+            'Dừng bán' => 'dung_ban',
+            'Đã bán' => 'da_ban',
+            'Tăng chào' => 'tang_chao',
+            'Hạ chào' => 'ha_chao',
+            'ban_manh' => 'ban_manh',
+            'tam_dung_ban' => 'tam_dung_ban',
+            'dung_ban' => 'dung_ban',
+            'da_ban' => 'da_ban',
+            'tang_chao' => 'tang_chao',
+            'ha_chao' => 'ha_chao'
+        ];
+
+        $trang_thai = $map[$statusInput] ?? null;
+        if (!$trang_thai) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'message' => 'Invalid status value']);
+            return;
+        }
+
+        require_once __DIR__ . '/../Models/Property.php';
+        $ok = Property::updateStatus($id, $trang_thai);
+        header('Content-Type: application/json');
+        if ($ok) {
+            echo json_encode(['ok' => true, 'message' => 'Cập nhật trạng thái thành công']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'Không thể cập nhật cơ sở dữ liệu']);
+        }
     }
 }
