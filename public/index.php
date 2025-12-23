@@ -80,10 +80,40 @@ $router->post('/reset-password', 'AuthController@handleReset');
 
 // ==================== Main ( Người dùng ) ====================
 $router->get('/home', 'MainController@index', 'auth');
+$router->get('/logout', 'MainController@logout', 'auth');
+// Profile routes
+$router->get('/profile', 'MainController@profile', 'auth');
+$router->get('/detailprofile', 'MainController@detailprofile', 'auth');
+$router->get('/editprofile', 'MainController@editprofile', 'auth');
+$router->post('/editprofile', 'MainController@editprofile', 'auth');
+// Change password routes
+$router->get('/changepassword', 'MainController@changepassword', 'auth');
+$router->post('/changepassword', 'MainController@changepassword', 'auth');
+$router->get('/management-resource', 'MainController@resource', 'auth');
+$router->get('/management-resource-rent', 'MainController@resourceRent', 'auth');
+$router->get('/report_list', 'MainController@reportList', 'auth');
+$router->post('/report_list', 'MainController@reportList', 'auth');
+
 
 
 // ==================== Admin ====================
 $router->get('/admin/home', 'AdminController@index', 'role:admin,super_admin');
+$router->get('/admin/logout', 'AdminController@logout', 'role:admin,super_admin');
+// Profile routes
+$router->get('/admin/profile', 'AdminController@profile', 'role:admin,super_admin');
+$router->get('/admin/detailprofile', 'AdminController@detailprofile', 'role:admin,super_admin');
+$router->get('/admin/editprofile', 'AdminController@editprofile', 'role:admin,super_admin');
+$router->post('/admin/editprofile', 'AdminController@editprofile', 'role:admin,super_admin');
+// Change password routes
+$router->get('/admin/changepassword', 'AdminController@changepassword', 'role:admin,super_admin');
+$router->post('/admin/changepassword', 'AdminController@changepassword', 'role:admin,super_admin');
+$router->get('/admin/management-resource', 'AdminController@resource', 'role:admin,super_admin');
+$router->get('/admin/management-resource-rent', 'AdminController@resourceRent', 'role:admin,super_admin');
+$router->get('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
+$router->post('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
+$router->get('/admin/report_list', 'AdminController@reportList', 'role:admin,super_admin');
+$router->get('/admin/report_customer', 'AdminController@reportCustomerDetail', 'role:admin,super_admin');
+
 
 
 // ==================== SuperAdmin ====================
