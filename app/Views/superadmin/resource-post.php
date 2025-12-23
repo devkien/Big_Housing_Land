@@ -61,6 +61,10 @@
                     </select>
                     <span class="fake-placeholder">Pháp lý <span class="required-star">*</span></span>
                 </div>
+                <div class="form-group" id="ma-so-so-group" style="display: none;">
+                    <input type="text" name="ma_so_so" class="form-input" placeholder="Mã số sổ (nhập nếu có)">
+                    <span class="fake-placeholder">Mã số sổ</span>
+                </div>
                 <div class="form-section-title">Diện tích & giá</div>
 
                 <div class="form-group input-with-unit">
@@ -250,6 +254,20 @@
 
             // init
             tryFetch(0);
+
+            // Toggle Mã số sổ input when Pháp lý changes
+            const phapLySelect = document.querySelector('select[name="phap_ly"]');
+            const maSoGroup = document.getElementById('ma-so-so-group');
+
+            function toggleMaSo() {
+                if (!phapLySelect || !maSoGroup) return;
+                maSoGroup.style.display = (phapLySelect.value === 'co_so') ? 'block' : 'none';
+            }
+            if (phapLySelect) {
+                phapLySelect.addEventListener('change', toggleMaSo);
+                // initial state
+                toggleMaSo();
+            }
         })();
     </script>
 
