@@ -78,7 +78,7 @@
                             }
                         ?>
                             <tr onclick="window.location.href='<?= BASE_URL ?>/detail?id=<?= htmlspecialchars($p['id']) ?>'">
-                                <td style="padding-left:15px;" onclick="event.stopPropagation()"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                                <td style="padding-left:15px; cursor: pointer;" class="action-cell-save" data-id="<?= $p['id'] ?>" onclick="event.stopPropagation()"><i class="fa-regular fa-bookmark icon-save"></i></td>
                                 <td><?= $code ?></td>
                                 <td><?= $created ?></td>
                                 <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>
@@ -142,18 +142,16 @@
 
                 <div class="filter-group">
                     <div class="collection-list-select" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
-                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="1" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Khách hàng tiềm năng</span>
-                        </label>
-                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="2" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Nhà đất Hà Đông</span>
-                        </label>
-                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="3" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Dự án mới</span>
-                        </label>
+                        <?php if (!empty($collections)): ?>
+                            <?php foreach ($collections as $c): ?>
+                                <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
+                                    <input type="checkbox" name="collection" value="<?= $c['id'] ?>" style="margin-right: 10px;">
+                                    <span style="font-size: 14px; color: #000;"><?= htmlspecialchars($c['ten_bo_suu_tap']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div style="padding: 10px; text-align: center; color: #666;">Bạn chưa có bộ sưu tập nào.</div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -190,6 +188,91 @@
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterModal = document.getElementById('filter-modal');
+        const searchModal = document.getElementById('search-modal');
+        const saveCollectionModal = document.getElementById('save-collection-modal');
+        
+        const btnFilter = document.getElementById('btn-filter');
+        const closeFilter = document.getElementById('close-filter');
+        const closeSearch = document.getElementById('close-search');
+        const closeSaveCollection = document.getElementById('close-save-collection');
+        const confirmSaveBtn = document.getElementById('confirm-save-collection');
+        
+        const cellSaves = document.querySelectorAll('.action-cell-save');
+        let currentPropertyId = null;
+
+        if (btnFilter) btnFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'flex'; });
+        if (closeFilter) closeFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'none'; });
+        if (closeSearch) closeSearch.addEventListener('click', () => { if(searchModal) searchModal.style.display = 'none'; });
+        if (closeSaveCollection) closeSaveCollection.addEventListener('click', () => { if(saveCollectionModal) saveCollectionModal.style.display = 'none'; });
+
+        // Xử lý click nút Lưu trên mỗi dòng
+        cellSaves.forEach(cell => {
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentPropertyId = cell.getAttribute('data-id');
+                
+                const checkboxes = saveCollectionModal.querySelectorAll('input[name="collection"]');
+                checkboxes.forEach(cb => cb.checked = false);
+
+                // Fetch các bộ sưu tập đã lưu của tài nguyên này
+                fetch('<?= BASE_URL ?>/get-property-collections?id=' + currentPropertyId)
+                    .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
+                    .then(data => {
+                        if(data.success && data.collection_ids) {
+                            data.collection_ids.forEach(cid => {
+                                const cb = saveCollectionModal.querySelector(`input[name="collection"][value="${cid}"]`);
+                                if(cb) cb.checked = true;
+                            });
+                        }
+                    })
+                    .catch(e => console.error('Lỗi tải bộ sưu tập:', e))
+                    .finally(() => {
+                        if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
+                    });
+            });
+        });
+
+        // Xử lý nút "Lưu" trong modal
+        if (confirmSaveBtn) {
+            confirmSaveBtn.addEventListener('click', () => {
+                if (!currentPropertyId) return;
+                
+                const selected = Array.from(saveCollectionModal.querySelectorAll('input[name="collection"]:checked')).map(cb => cb.value);
+
+                const formData = new FormData();
+                formData.append('property_id', currentPropertyId);
+                selected.forEach(id => formData.append('collection_ids[]', id));
+
+                fetch('<?= BASE_URL ?>/add-to-collection', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
+                .then(data => {
+                    if(data.success) {
+                        alert('Đã lưu vào bộ sưu tập!');
+                        if (saveCollectionModal) saveCollectionModal.style.display = 'none';
+                    } else {
+                        alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại.');
+                });
+            });
+        }
+
+        window.addEventListener('click', (event) => {
+            if (event.target == filterModal) filterModal.style.display = 'none';
+            if (event.target == searchModal) searchModal.style.display = 'none';
+            if (event.target == saveCollectionModal) saveCollectionModal.style.display = 'none';
+        });
+    });
+    </script>
 </body>
 
 </html>

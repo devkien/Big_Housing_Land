@@ -97,10 +97,22 @@ $router->get('/report_customer', 'MainController@reportCustomerDetail', 'auth');
 $router->get('/detail', 'MainController@detail', 'auth');
 $router->get('/collection', 'MainController@collection', 'auth');
 $router->get('/cre-collection', 'MainController@creCollection', 'auth');
+$router->post('/cre-collection', 'MainController@creCollection', 'auth');
+$router->post('/collection-rename', 'MainController@renameCollection', 'auth');
+$router->post('/collection-delete', 'MainController@deleteCollection', 'auth');
+$router->post('/add-to-collection', 'MainController@addToCollection', 'auth');
+$router->get('/get-property-collections', 'MainController@getPropertyCollections', 'auth');
 $router->get('/policy', 'MainController@policy', 'auth');
 $router->get('/info', 'MainController@info', 'auth');
 $router->get('/internal-info-detail', 'MainController@internalInfoDetail', 'auth');
 $router->get('/notification', 'MainController@notification', 'auth');
+$router->get('/auto-match', 'MainController@autoMatch', 'auth');
+$router->post('/auto-match', 'MainController@autoMatch', 'auth');
+
+$router->get('/terms-service', 'MainController@termsService', 'auth');
+$router->get('/privacy-policy', 'MainController@privacyPolicy', 'auth');
+$router->get('/payment-policy', 'MainController@paymentPolicy', 'auth');
+$router->get('/cookie-policy', 'MainController@cookiePolicy', 'auth');
 
 
 
@@ -148,6 +160,10 @@ $router->get('/admin/internal-info-detail', 'AdminController@InternalInfoDetail'
 $router->get('/admin/internal-info-edit', 'AdminController@InternalInfoEdit', 'role:admin,super_admin');
 $router->post('/admin/internal-info-edit', 'AdminController@InternalInfoEdit', 'role:admin,super_admin');
 $router->post('/admin/internal-info-delete', 'AdminController@deleteInternalInfo', 'role:admin,super_admin');
+$router->get('/admin/terms-service', 'AdminController@termsService', 'role:admin,super_admin');
+$router->get('/admin/privacy-policy', 'AdminController@privacyPolicy', 'role:admin,super_admin');
+$router->get('/admin/payment-policy', 'AdminController@paymentPolicy', 'role:admin,super_admin');
+$router->get('/admin/cookie-policy', 'AdminController@cookiePolicy', 'role:admin,super_admin');
 
 // ==================== SuperAdmin ====================
 

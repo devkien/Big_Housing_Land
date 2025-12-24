@@ -249,6 +249,9 @@ class MainController extends Controller
     {
         // list kho_nha_dat
         require_once __DIR__ . '/../Models/Property.php';
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
@@ -264,6 +267,10 @@ class MainController extends Controller
 
         $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
 
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        $collections = Collection::getForUser($userId);
+
         $this->view('main/resource', [
             'properties' => $properties,
             'page' => $page,
@@ -272,7 +279,8 @@ class MainController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            'collections' => $collections
         ]);
     }
 
@@ -466,5 +474,229 @@ class MainController extends Controller
 
         $this->view('main/notification', ['posts' => $posts, 'page' => $page, 'search' => $search]);
     }
-    
+
+    public function collection()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $collections = Collection::getForUser($userId, $search);
+
+        $this->view('main/collection', [
+            'collections' => $collections,
+            'search' => $search
+        ]);
+    }
+
+    public function creCollection()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Models/Collection.php';
+            require_once __DIR__ . '/../../core/Auth.php';
+            
+            $user = \Auth::user();
+            $userId = $user['id'] ?? null;
+            $name = isset($_POST['ten_bo_suu_tap']) ? trim($_POST['ten_bo_suu_tap']) : '';
+            $mo_ta = isset($_POST['mo_ta']) ? trim($_POST['mo_ta']) : null;
+
+            $savedPath = null;
+            if (!empty($_FILES['anh_dai_dien']) && $_FILES['anh_dai_dien']['error'] === UPLOAD_ERR_OK) {
+                $uploadPath = __DIR__ . '/../../public/uploads/collections';
+                if (!is_dir($uploadPath)) @mkdir($uploadPath, 0755, true);
+                
+                $tmp = $_FILES['anh_dai_dien']['tmp_name'];
+                $ext = pathinfo($_FILES['anh_dai_dien']['name'], PATHINFO_EXTENSION);
+                $filename = uniqid('coll_') . '.' . $ext;
+                if (move_uploaded_file($tmp, $uploadPath . '/' . $filename)) {
+                    $savedPath = 'uploads/collections/' . $filename;
+                }
+            }
+
+            $data = [
+                'user_id' => $userId,
+                'ten_bo_suu_tap' => $name,
+                'anh_dai_dien' => $savedPath,
+                'mo_ta' => $mo_ta,
+                'is_default' => 0,
+                'trang_thai' => 1
+            ];
+
+            if (Collection::create($data)) {
+                header('Location: ' . BASE_URL . '/collection');
+                exit;
+            } else {
+                $_SESSION['error'] = 'Lỗi khi tạo bộ sưu tập';
+            }
+        }
+        $this->view('main/cre-collection');
+    }
+
+    public function renameCollection()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        header('Content-Type: application/json');
+        
+        $id = $_POST['id'] ?? 0;
+        $name = $_POST['ten_bo_suu_tap'] ?? '';
+        $ok = Collection::updateName((int)$id, $name);
+        echo json_encode(['ok' => $ok]);
+    }
+
+    public function deleteCollection()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        header('Content-Type: application/json');
+
+        $id = $_POST['id'] ?? 0;
+        $ok = Collection::deleteById((int)$id);
+        echo json_encode(['ok' => $ok]);
+    }
+
+    public function addToCollection()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        if ($userId === 0) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $propertyId = $_POST['property_id'] ?? null;
+        $collectionIds = $_POST['collection_ids'] ?? [];
+
+        if (empty($propertyId) || !is_numeric($propertyId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid Property ID']);
+            exit;
+        }
+
+        $ok = Collection::savePropertyToCollections((int)$propertyId, (array)$collectionIds, $userId);
+
+        if ($ok) {
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
+        exit;
+    }
+
+    public function getPropertyCollections()
+    {
+        header('Content-Type: application/json');
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+
+        $propertyId = $_GET['id'] ?? 0;
+        $ids = Collection::getCollectionIdsForProperty((int)$propertyId, $userId);
+        echo json_encode(['success' => true, 'collection_ids' => $ids]);
+        exit;
+    }
+
+    public function autoMatch()
+    {
+        // Nếu là POST, chuyển hướng sang GET với các tham số
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $qs = [];
+            if (!empty($_POST['type'])) $qs['type'] = $_POST['type'];
+            if (!empty($_POST['location'])) $qs['location'] = $_POST['location'];
+            if (!empty($_POST['price'])) $qs['price'] = $_POST['price'];
+            if (!empty($_POST['legal'])) $qs['legal'] = $_POST['legal'];
+            if (!empty($_POST['area'])) $qs['area'] = $_POST['area'];
+            $qs = http_build_query($qs);
+            header('Location: ' . BASE_URL . '/auto-match' . ($qs ? ('?' . $qs) : ''));
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Property.php';
+
+        $type = isset($_GET['type']) ? trim($_GET['type']) : '';
+        $location = isset($_GET['location']) ? trim($_GET['location']) : '';
+        $price = isset($_GET['price']) ? trim($_GET['price']) : '';
+        $legal = isset($_GET['legal']) ? trim($_GET['legal']) : '';
+        $area = isset($_GET['area']) ? (float)$_GET['area'] : 0;
+
+        $properties = null; // Khởi tạo là null để không hiển thị gì ban đầu
+
+        // Chỉ thực hiện tìm kiếm nếu có ít nhất một tham số được gửi lên (người dùng đã bấm tìm kiếm)
+        if (isset($_GET['type']) || isset($_GET['location']) || isset($_GET['price']) || isset($_GET['legal']) || isset($_GET['area'])) {
+            $db = \Database::connect();
+            $sql = "SELECT * FROM properties WHERE 1=1";
+            $params = [];
+
+            if ($type !== '') {
+                $sql .= " AND loai_bds = ?";
+                $params[] = $type;
+            }
+
+            if ($location !== '') {
+                $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+                $like = '%' . $location . '%';
+                array_push($params, $like, $like, $like, $like);
+            }
+
+            if ($price !== '') {
+                if ($price === 'lt_5') $sql .= " AND gia_chao < 5000000000";
+                elseif ($price === '5_10') $sql .= " AND gia_chao BETWEEN 5000000000 AND 10000000000";
+                elseif ($price === '10_20') $sql .= " AND gia_chao BETWEEN 10000000000 AND 20000000000";
+                elseif ($price === 'gt_20') $sql .= " AND gia_chao > 20000000000";
+            }
+
+            if ($legal === 'so_do') $sql .= " AND phap_ly LIKE '%so%'";
+            if ($legal === 'khong_so') $sql .= " AND phap_ly LIKE '%khong%'";
+
+            if ($area > 0) {
+                $sql .= " AND dien_tich >= ?";
+                $params[] = $area;
+            }
+
+            $sql .= " ORDER BY id DESC LIMIT 100";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($properties as &$p) {
+                $p['thumb'] = Property::getFirstImagePath((int)$p['id']);
+            }
+        }
+
+        $this->view('main/auto_match', [
+            'properties' => $properties,
+            'filters' => ['type' => $type, 'location' => $location, 'price' => $price, 'legal' => $legal, 'area' => $area]
+        ]);
+    }
+   public function termsService()
+    {
+        $this->view('main/terms-service');
+    }
+    public function privacyPolicy()
+    {
+        $this->view('main/privacy-policy');
+    }
+
+    public function cookiePolicy()
+    {
+        $this->view('main/cookie-policy');
+    }
+    public function paymentPolicy()
+    {
+        $this->view('main/payment-policy');
+    }
 }
