@@ -5,10 +5,10 @@
     <a href="<?= BASE_URL ?>/admin/collection" class="nav-item" id="nav-collection">
         <img src="<?= BASE_URL ?>/icon/menubosuutam.png" alt="">
     </a>
-    <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-info">
+    <a href="<?= BASE_URL ?>/admin/info" class="nav-item" id="nav-info">
         <img src="<?= BASE_URL ?>/icon/menuthongtin.png" alt="">
     </a>
-    <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-notify">
+    <a href="<?= BASE_URL ?>/admin/notification" class="nav-item" id="nav-notify">
         <img src="<?= BASE_URL ?>/icon/menuthongbao.png" alt="">
     </a>
     <a href="<?= BASE_URL ?>/admin/profile" class="nav-item" id="nav-profile">

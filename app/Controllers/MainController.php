@@ -425,4 +425,46 @@ class MainController extends Controller
 
         $this->view('main/detail', ['property' => $property]);
     }
+
+    public function policy()
+    {
+        $this->view('main/policy');
+    }
+
+    public function info()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        $posts = InternalPost::getActive(50, 0);
+        $this->view('main/info', ['posts' => $posts]);
+    }
+
+    public function internalInfoDetail()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            header('Location: ' . BASE_URL . '/info');
+            exit;
+        }
+        $post = InternalPost::getById($id);
+        if (!$post) {
+            header('Location: ' . BASE_URL . '/info');
+            exit;
+        }
+        $this->view('main/internal-info-detail', ['post' => $post]);
+    }
+
+    public function notification()
+    {
+        require_once __DIR__ . '/../Models/DealPost.php';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 20;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $offset = ($page - 1) * $perPage;
+
+        $posts = DealPost::getList($perPage, $offset, $search);
+
+        $this->view('main/notification', ['posts' => $posts, 'page' => $page, 'search' => $search]);
+    }
+    
 }

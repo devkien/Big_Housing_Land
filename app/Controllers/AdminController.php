@@ -814,4 +814,467 @@ class AdminController extends Controller
 
         $this->view('admin/cre-notification', ['user' => $user]);
     }
+
+    public function autoMatch()
+    {
+        // Nếu là POST, chuyển hướng sang GET với các tham số
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $qs = [];
+            if (!empty($_POST['type'])) $qs['type'] = $_POST['type'];
+            if (!empty($_POST['location'])) $qs['location'] = $_POST['location'];
+            if (!empty($_POST['price'])) $qs['price'] = $_POST['price'];
+            if (!empty($_POST['legal'])) $qs['legal'] = $_POST['legal'];
+            if (!empty($_POST['area'])) $qs['area'] = $_POST['area'];
+            $qs = http_build_query($qs);
+            header('Location: ' . BASE_URL . '/admin/auto-match' . ($qs ? ('?' . $qs) : ''));
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Property.php';
+
+        $type = isset($_GET['type']) ? trim($_GET['type']) : '';
+        $location = isset($_GET['location']) ? trim($_GET['location']) : '';
+        $price = isset($_GET['price']) ? trim($_GET['price']) : '';
+        $legal = isset($_GET['legal']) ? trim($_GET['legal']) : '';
+        $area = isset($_GET['area']) ? (float)$_GET['area'] : 0;
+
+        $db = Database::connect();
+        $sql = "SELECT * FROM properties WHERE 1=1";
+        $params = [];
+
+        if ($type !== '') {
+            $sql .= " AND loai_bds = ?";
+            $params[] = $type;
+        }
+
+        if ($location !== '') {
+            $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+            $like = '%' . $location . '%';
+            array_push($params, $like, $like, $like, $like);
+        }
+
+        if ($price !== '') {
+            if ($price === 'lt_5') $sql .= " AND gia_chao < 5000000000";
+            elseif ($price === '5_10') $sql .= " AND gia_chao BETWEEN 5000000000 AND 10000000000";
+            elseif ($price === '10_20') $sql .= " AND gia_chao BETWEEN 10000000000 AND 20000000000";
+            elseif ($price === 'gt_20') $sql .= " AND gia_chao > 20000000000";
+        }
+
+        if ($legal === 'so_do') $sql .= " AND phap_ly LIKE '%so%'";
+        if ($legal === 'khong_so') $sql .= " AND phap_ly LIKE '%khong%'";
+
+        if ($area > 0) {
+            $sql .= " AND dien_tich >= ?";
+            $params[] = $area;
+        }
+
+        $sql .= " ORDER BY id DESC LIMIT 100";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($properties as &$p) {
+            $p['thumb'] = Property::getFirstImagePath((int)$p['id']);
+        }
+
+        $this->view('admin/auto_match', [
+            'properties' => $properties,
+            'filters' => ['type' => $type, 'location' => $location, 'price' => $price, 'legal' => $legal, 'area' => $area]
+        ]);
+    }
+
+    public function policy()
+    {
+        $this->view('admin/policy');
+    }
+    // info thông tin nội bộ
+    public function info()
+    {
+        // Load internal posts and pass to view
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        $posts = InternalPost::getActive(50, 0);
+        $this->view('admin/info', ['posts' => $posts]);
+    }
+
+    public function addInternalInfo()
+    {
+        // Handle POST (create new internal info)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Helpers/functions.php';
+            if (!verify_csrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Token không hợp lệ.';
+                header('Location: ' . BASE_URL . '/admin/add-internal-info');
+                exit;
+            }
+
+            require_once __DIR__ . '/../Models/InternalPost.php';
+            require_once __DIR__ . '/../../core/Auth.php';
+
+            $sessionUser = \Auth::user();
+            $userId = $sessionUser['id'] ?? null;
+
+            $tieu_de = trim($_POST['tieu_de'] ?? '');
+            $noi_dung = trim($_POST['noi_dung'] ?? '');
+
+            if ($tieu_de === '' || $noi_dung === '') {
+                $_SESSION['error'] = 'Vui lòng điền tiêu đề và nội dung.';
+                header('Location: ' . BASE_URL . '/admin/add-internal-info');
+                exit;
+            }
+
+            $data = [
+                'user_id' => $userId,
+                'tieu_de' => $tieu_de,
+                'noi_dung' => $noi_dung,
+                'trang_thai' => 1
+            ];
+
+            $postId = InternalPost::create($data);
+            if (!$postId) {
+                $_SESSION['error'] = 'Lưu thông tin thất bại.';
+                header('Location: ' . BASE_URL . '/admin/add-internal-info');
+                exit;
+            }
+
+            // Handle uploaded media
+            $saved = [];
+            $maxFiles = 6;
+            $maxSize = 8 * 1024 * 1024; // 8MB
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/quicktime'];
+
+            if (!empty($_FILES['media']) && is_array($_FILES['media']['tmp_name'])) {
+                $count = count($_FILES['media']['tmp_name']);
+                if ($count > $maxFiles) $count = $maxFiles;
+
+                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/internal/' . $postId;
+                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
+
+                for ($i = 0; $i < $count; $i++) {
+                    $err = $_FILES['media']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                    if ($err !== UPLOAD_ERR_OK) continue;
+                    $tmp = $_FILES['media']['tmp_name'][$i];
+                    $orig = basename($_FILES['media']['name'][$i] ?? 'file');
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                    $size = filesize($tmp);
+                    if ($size > $maxSize) continue;
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmp);
+                    finfo_close($finfo);
+                    if (!in_array($mime, $allowedMimes, true)) continue;
+
+                    $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+                    $dest = $uploadsDir . '/' . $filename;
+                    if (move_uploaded_file($tmp, $dest)) {
+                        $webPath = 'uploads/internal/' . $postId . '/' . $filename;
+                        $saved[] = $webPath;
+                    }
+                }
+            }
+
+            if (!empty($saved)) {
+                InternalPost::addImages($postId, $saved);
+            }
+
+            $_SESSION['success'] = 'Thêm thông tin nội bộ thành công.';
+            header('Location: ' . BASE_URL . '/admin/info');
+            exit;
+        }
+
+        $this->view('admin/add-internal-info');
+    }
+    public function internalInfoList()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        require_once __DIR__ . '/../Helpers/functions.php';
+
+        // Handle POST (delete) - supports form POST and JSON (AJAX)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'] ?? null;
+            $token = $_POST['_csrf'] ?? null;
+
+            // JSON body support
+            if (!$id) {
+                $body = file_get_contents('php://input');
+                $json = json_decode($body, true);
+                if (is_array($json)) {
+                    $id = $json['id'] ?? null;
+                    if (isset($json['_csrf'])) $token = $json['_csrf'];
+                }
+            }
+            if (!verify_csrf($token)) {
+                $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+                if ($isJson) {
+                    http_response_code(403);
+                    echo json_encode(['ok' => false, 'message' => 'CSRF token invalid']);
+                    return;
+                }
+                $_SESSION['error'] = 'Token không hợp lệ.';
+                header('Location: ' . BASE_URL . '/admin/internal-info-list');
+                return;
+            }
+
+            if (empty($id) || !is_numeric($id)) {
+                $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+                if ($isJson) {
+                    http_response_code(400);
+                    echo json_encode(['ok' => false, 'message' => 'Invalid id']);
+                    return;
+                }
+                $_SESSION['error'] = 'ID không hợp lệ.';
+                header('Location: ' . BASE_URL . '/admin/internal-info-list');
+                return;
+            }
+
+            $ok = InternalPost::deleteById((int)$id);
+
+            $isJson = (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false) || (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false);
+            if ($ok) {
+                if ($isJson) {
+                    echo json_encode(['ok' => true]);
+                    return;
+                }
+                $_SESSION['success'] = 'Đã xóa thông tin nội bộ.';
+            } else {
+                if ($isJson) {
+                    http_response_code(500);
+                    echo json_encode(['ok' => false, 'message' => 'Xóa thất bại']);
+                    return;
+                }
+                $_SESSION['error'] = 'Xóa thất bại.';
+            }
+
+            header('Location: ' . BASE_URL . '/admin/internal-info-list');
+            return;
+        }
+
+        // GET: list posts with pagination
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 10;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $offset = ($page - 1) * $perPage;
+
+        // Use countActive with search support
+        $total = InternalPost::countActive($search);
+        $pages = (int)ceil($total / $perPage);
+
+        $posts = InternalPost::getActive($perPage, $offset, $search);
+
+        $this->view('admin/internal-info-list', [
+            'posts' => $posts,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search
+        ]);
+    }
+
+    public function deleteInternalInfo()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        require_once __DIR__ . '/../Helpers/functions.php';
+
+        // Kiểm tra method
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            exit;
+        }
+
+        $id = $_POST['id'] ?? null;
+        $token = $_POST['_csrf'] ?? null;
+
+        // Hỗ trợ nhận JSON (nếu frontend gửi JSON)
+        if (!$id) {
+            $input = file_get_contents('php://input');
+            $json = json_decode($input, true);
+            if (is_array($json)) {
+                $id = $json['id'] ?? null;
+                $token = $json['_csrf'] ?? ($json['token'] ?? null);
+            }
+        }
+
+        // Kiểm tra request JSON hay Form thường
+        $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+                  (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
+
+        // Validate Token
+        if (!verify_csrf($token)) {
+            if ($isJson) {
+                http_response_code(403);
+                echo json_encode(['ok' => false, 'message' => 'Invalid Token']);
+                exit;
+            }
+            $_SESSION['error'] = 'Token không hợp lệ.';
+            header('Location: ' . BASE_URL . '/admin/internal-info-list');
+            exit;
+        }
+
+        // Validate ID
+        if (empty($id) || !is_numeric($id)) {
+            if ($isJson) {
+                http_response_code(400);
+                echo json_encode(['ok' => false, 'message' => 'Invalid ID']);
+                exit;
+            }
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '/admin/internal-info-list');
+            exit;
+        }
+
+        // --- BẮT ĐẦU XỬ LÝ XÓA (KÈM TRY-CATCH) ---
+        try {
+            // Gọi hàm xóa trong Model
+            $ok = InternalPost::deleteById((int)$id);
+        } catch (\Throwable $e) {
+            // Bắt lỗi SQL (ví dụ: lỗi khóa ngoại chưa xóa ảnh)
+            $ok = false;
+            // Ghi log lỗi nếu cần: error_log($e->getMessage());
+            
+            // Nếu là JSON, trả về lỗi chi tiết để hiển thị lên màn hình
+            if ($isJson) {
+                http_response_code(500); // Báo lỗi server
+                echo json_encode([
+                    'ok' => false, 
+                    'message' => 'Lỗi Server: ' . $e->getMessage() // Quan trọng: Xem lỗi gì ở đây
+                ]);
+                exit;
+            }
+        }
+        // --- KẾT THÚC XỬ LÝ ---
+
+        // Trả về kết quả
+        if ($isJson) {
+            echo json_encode(['ok' => $ok]);
+            exit;
+        }
+
+        if ($ok) $_SESSION['success'] = 'Đã xóa thông tin.';
+        else $_SESSION['error'] = 'Xóa thất bại (Có thể do dữ liệu liên quan).';
+
+        header('Location: ' . BASE_URL . '/admin/internal-info-list');
+        exit;
+    } // <--- Đảm bảo có dấu ngoặc này!
+    public function InternalInfoDetail()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            header('Location: ' . BASE_URL . '/admin/info');
+            exit;
+        }
+
+        $post = InternalPost::getById($id);
+        if (!$post) {
+            header('Location: ' . BASE_URL . '/admin/info');
+            exit;
+        }
+
+        $this->view('admin/internal-info-detail', ['post' => $post]);
+    }
+    public function InternalInfoEdit()
+    {
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        require_once __DIR__ . '/../Helpers/functions.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '/admin/internal-info-list');
+            exit;
+        }
+
+        // If POST, process update
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $token = $_POST['_csrf'] ?? null;
+            if (!verify_csrf($token)) {
+                $_SESSION['error'] = 'Token không hợp lệ.';
+                header('Location: ' . BASE_URL . '/admin/internal-info-edit?id=' . $id);
+                exit;
+            }
+
+            $tieu_de = trim($_POST['tieu_de'] ?? '');
+            $noi_dung = trim($_POST['noi_dung'] ?? '');
+
+            if ($tieu_de === '' || $noi_dung === '') {
+                $_SESSION['error'] = 'Vui lòng nhập tiêu đề và nội dung.';
+                header('Location: ' . BASE_URL . '/admin/internal-info-edit?id=' . $id);
+                exit;
+            }
+
+            $data = [
+                'tieu_de' => $tieu_de,
+                'noi_dung' => $noi_dung,
+                'trang_thai' => 1
+            ];
+
+            $ok = InternalPost::update($id, $data);
+
+            // Handle removed images (checkboxes with name remove_images[] containing image ids)
+            if (!empty($_POST['remove_images']) && is_array($_POST['remove_images'])) {
+                foreach ($_POST['remove_images'] as $imgId) {
+                    $imgId = (int)$imgId;
+                    if ($imgId > 0) InternalPost::deleteImageById($imgId);
+                }
+            }
+
+            // Handle newly uploaded media
+            $saved = [];
+            $maxFiles = 6;
+            $maxSize = 8 * 1024 * 1024; // 8MB
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/quicktime'];
+
+            if (!empty($_FILES['media']) && is_array($_FILES['media']['tmp_name'])) {
+                $count = count($_FILES['media']['tmp_name']);
+                if ($count > $maxFiles) $count = $maxFiles;
+
+                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/internal/' . $id;
+                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
+
+                for ($i = 0; $i < $count; $i++) {
+                    $err = $_FILES['media']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                    if ($err !== UPLOAD_ERR_OK) continue;
+                    $tmp = $_FILES['media']['tmp_name'][$i];
+                    $orig = basename($_FILES['media']['name'][$i] ?? 'file');
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                    $size = filesize($tmp);
+                    if ($size > $maxSize) continue;
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmp);
+                    finfo_close($finfo);
+                    if (!in_array($mime, $allowedMimes, true)) continue;
+
+                    $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+                    $dest = $uploadsDir . '/' . $filename;
+                    if (move_uploaded_file($tmp, $dest)) {
+                        $webPath = 'uploads/internal/' . $id . '/' . $filename;
+                        $saved[] = $webPath;
+                    }
+                }
+            }
+
+            if (!empty($saved)) InternalPost::addImages($id, $saved);
+
+            if ($ok) {
+                $_SESSION['success'] = 'Cập nhật thông tin nội bộ thành công.';
+            } else {
+                $_SESSION['error'] = 'Cập nhật thất bại.';
+            }
+
+            header('Location: ' . BASE_URL . '/admin/internal-info-edit?id=' . $id);
+            exit;
+        }
+
+        // GET: load and show
+        $post = InternalPost::getById($id);
+        if (!$post) {
+            $_SESSION['error'] = 'Không tìm thấy bài viết.';
+            header('Location: ' . BASE_URL . '/admin/internal-info-list');
+            exit;
+        }
+
+        $this->view('admin/internal-info-edit', ['post' => $post]);
+    }
+
 }
