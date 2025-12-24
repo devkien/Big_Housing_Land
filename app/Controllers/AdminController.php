@@ -1281,5 +1281,22 @@ class AdminController extends Controller
 
         $this->view('admin/internal-info-edit', ['post' => $post]);
     }
+     public function termsService()
+    {
+        $this->view('admin/terms-service');
+    }
+    public function privacyPolicy()
+    {
+        $this->view('admin/privacy-policy');
+    }
+
+    public function cookiePolicy()
+    {
+        $this->view('admin/cookie-policy');
+    }
+    public function paymentPolicy()
+    {
+        $this->view('admin/payment-policy');
+    }
 
 }

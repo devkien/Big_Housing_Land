@@ -36,7 +36,6 @@
 
         <div class="toolbar-section">
             <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
-            <button class="tool-btn" id="btn-search" style="margin-left: 10px;"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
             <div style="flex:1;"></div>
         </div>
         <div class="table-wrapper" style="margin-bottom: 0;">

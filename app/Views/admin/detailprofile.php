@@ -18,7 +18,7 @@
         <header class="profile-detail-header">
             <a href="<?= BASE_URL ?>/admin/profile" style="color: black; font-size: 18px;"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="header-title"><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></div>
-            <div style="font-size: 20px;"><i class="fa-solid fa-comment-dots"></i></div>
+            <div style="font-size: 20px;"></div>
         </header>
 
         <div class="cover-wrapper">

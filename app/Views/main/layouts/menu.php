@@ -9,7 +9,7 @@
         <span>Bộ sưu tập</span>
     </div>
 
-    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/auto_match'">
+    <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/auto-match'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Vector (2).png" alt=""></div>
         <span>QL khách-<br>Tự khớp</span>
     </div>
