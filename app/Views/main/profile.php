@@ -25,19 +25,19 @@
         </div>
 
         <div class="quick-access-grid">
-            <a href="<?= BASE_URL ?>/management-resource" class="quick-card">
+            <a href="<?= BASE_URL ?>/admin/management-resource" class="quick-card">
                 <i class="fa-solid fa-house-chimney quick-icon"></i>
                 <span class="quick-text">Kho tài nguyên</span>
             </a>
-            <a href="<?= BASE_URL ?>/policy" class="quick-card">
+            <a href="<?= BASE_URL ?>/admin/policy" class="quick-card">
                 <i class="fa-regular fa-clipboard quick-icon"></i>
                 <span class="quick-text">Quy định và hướng dẫn</span>
             </a>
-            <a href="<?= BASE_URL ?>/notification" class="quick-card">
+            <a href="<?= BASE_URL ?>/admin/notification" class="quick-card">
                 <i class="fa-solid fa-money-bill-1-wave quick-icon"></i>
                 <span class="quick-text">Thông báo vụ chốt</span>
             </a>
-            <a href="<?= BASE_URL ?>/report_list" class="quick-card">
+            <a href="<?= BASE_URL ?>/admin/report_list" class="quick-card">
                 <i class="fa-solid fa-chart-simple quick-icon"></i>
                 <span class="quick-text">Báo cáo dẫn khách</span>
             </a>
@@ -65,11 +65,11 @@
                 <i class="fa-solid fa-chevron-up" style="font-size:12px;"></i>
             </div>
 
-            <div class="sub-setting-item">Điều khoản dịch vụ</div>
-            <div class="sub-setting-item">Chính sách bảo mật</div>
-            <div class="sub-setting-item">Chính sách hoàn tiền/đổi trả</div>
-            <div class="sub-setting-item">Chính sách Cookie</div>
-        </div>
+                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/terms-service'">Điều khoản dịch vụ</div>
+                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/privacy-policy'">Chính sách bảo mật</div>
+                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/payment-policy'">Chính sách hoàn tiền/đổi trả</div>
+                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/cookie-policy'">Chính sách Cookie</div>
+                </div>
         <button class="btn-logout" onclick="window.location.href='<?= BASE_URL ?>/logout'">Đăng xuất</button>
         <div style="height: 60px;"></div>
         <div id="bottom-nav-container">

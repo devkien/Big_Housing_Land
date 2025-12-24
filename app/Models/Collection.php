@@ -32,6 +32,76 @@ class Collection extends Model
         }
     }
 
+    public static function getForUser($userId, $search = null)
+    {
+        $db = self::db();
+        $params = [(int)$userId];
+        $sql = "SELECT c.id, c.ten_bo_suu_tap, c.anh_dai_dien, c.mo_ta, c.is_default, c.trang_thai, COUNT(ci.id) AS item_count
+                FROM collections c
+                LEFT JOIN collection_items ci ON ci.collection_id = c.id
+                WHERE c.user_id = ?";
+
+        if ($search) {
+            $sql .= " AND (c.ten_bo_suu_tap LIKE ? OR c.mo_ta LIKE ?)";
+            $like = '%' . $search . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql .= " GROUP BY c.id ORDER BY c.created_at DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function savePropertyToCollections(int $propertyId, array $collectionIds, int $userId)
+    {
+        $db = self::db();
+        try {
+            $db->beginTransaction();
+
+            // 1. Get all collections owned by the user to validate against
+            $stmt = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $ownedCollectionIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            if (empty($ownedCollectionIds)) {
+                $db->rollBack();
+                return true;
+            }
+
+            // 2. Delete all old associations for this property within the user's collections
+            $ownedPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
+            $delStmt = $db->prepare("DELETE FROM collection_items WHERE property_id = ? AND collection_id IN ($ownedPlaceholders)");
+            $delParams = array_merge([$propertyId], $ownedCollectionIds);
+            $delStmt->execute($delParams);
+
+            // 3. Insert new associations, but only for collections the user owns.
+            $validCollectionIds = array_intersect($collectionIds, $ownedCollectionIds);
+
+            if (!empty($validCollectionIds)) {
+                $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, property_id) VALUES (?, ?)");
+                foreach ($validCollectionIds as $cid) {
+                    $insStmt->execute([(int)$cid, $propertyId]);
+                }
+            }
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            return false;
+        }
+    }
+
+    public static function getCollectionIdsForProperty(int $propertyId, int $userId)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.property_id = ? AND c.user_id = ?");
+        $stmt->execute([$propertyId, $userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
     public static function create(array $data)
     {
         $db = self::db();
@@ -87,40 +157,5 @@ class Collection extends Model
             @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
             return false;
         }
-    }
-
-    // Add a single item to a collection (avoid duplicates)
-    public static function addItem(int $collectionId, int $resourceId, string $resourceType = 'bat_dong_san')
-    {
-        $db = self::db();
-        // check exists
-        $check = $db->prepare("SELECT id FROM collection_items WHERE collection_id = ? AND resource_id = ? AND resource_type = ? LIMIT 1");
-        $check->execute([$collectionId, $resourceId, $resourceType]);
-        if ($check->fetch()) {
-            return false; // already exists
-        }
-
-        $sql = "INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at) VALUES (?, ?, ?, NOW())";
-        try {
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$collectionId, $resourceId, $resourceType]);
-            return true;
-        } catch (PDOException $e) {
-            $msg = date('Y-m-d H:i:s') . " - Collection::addItem error: " . $e->getMessage() . " Params: " . json_encode([$collectionId, $resourceId, $resourceType]) . "\n";
-            @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
-            return false;
-        }
-    }
-
-    // Add multiple items (collection ids array) for a resource
-    public static function addItems(array $collectionIds, int $resourceId, string $resourceType = 'bat_dong_san')
-    {
-        $added = 0;
-        foreach ($collectionIds as $cid) {
-            $cid = (int)$cid;
-            if ($cid <= 0) continue;
-            if (self::addItem($cid, $resourceId, $resourceType)) $added++;
-        }
-        return $added;
     }
 }
