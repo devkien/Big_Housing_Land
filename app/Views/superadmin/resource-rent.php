@@ -19,7 +19,7 @@
     <div class="app-container" style="background: white;">
 
         <header class="resource-header">
-            <a href="../theme/home.html" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="<?= BASE_URL ?>/superadmin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="resource-title">Kho tài nguyên</div>
             <div class="header-icon-btn"></div>
         </header>
@@ -149,23 +149,17 @@
                 <h3 style="margin-bottom: 15px; font-size: 16px;">Lưu vào bộ sưu tập</h3>
 
                 <div class="filter-group">
-                    <div class="collection-list-select"
-                        style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="1" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Khách hàng tiềm năng</span>
-                        </label>
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="2" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Nhà đất Hà Đông</span>
-                        </label>
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="3" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Dự án mới</span>
-                        </label>
+                    <div class="collection-list-select" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
+                        <?php if (!empty($collections)) : ?>
+                            <?php foreach ($collections as $c) : ?>
+                                <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
+                                    <input type="checkbox" name="collection[]" value="<?= (int)$c['id'] ?>" style="margin-right: 10px;">
+                                    <span style="font-size: 14px; color: #000;"><?= htmlspecialchars($c['ten_bo_suu_tap'] ?? '') ?><?php if (isset($c['item_count'])) echo ' (' . (int)$c['item_count'] . ')'; ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <div style="padding:10px; color:#666">Chưa có bộ sưu tập nào.</div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -203,6 +197,97 @@
         </div>
 
     </div>
+    <script>
+        (function() {
+            function qs(sel, ctx) {
+                return (ctx || document).querySelector(sel);
+            }
+
+            function qsa(sel, ctx) {
+                return Array.prototype.slice.call((ctx || document).querySelectorAll(sel));
+            }
+            var modal = qs('#save-collection-modal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            var closeBtn = qs('#close-save-collection');
+            var confirmBtn = qs('#confirm-save-collection');
+            var currentPropertyId = null;
+
+            qsa('.icon-save').forEach(function(el) {
+                el.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    var tr = el.closest('tr');
+                    currentPropertyId = tr ? tr.getAttribute('data-id') : null;
+                    qsa('#save-collection-modal input[type=checkbox]').forEach(function(cb) {
+                        cb.checked = false;
+                    });
+                    modal.style.display = 'block';
+                });
+            });
+
+            if (closeBtn) closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function() {
+                    var selected = qsa('#save-collection-modal input[type=checkbox]:checked').map(function(cb) {
+                        return cb.value;
+                    });
+                    if (!currentPropertyId) return alert('Không xác định tài nguyên');
+                    if (selected.length === 0) return alert('Vui lòng chọn ít nhất một bộ sưu tập');
+
+                    var payload = {
+                        property_id: parseInt(currentPropertyId, 10),
+                        collections: selected.map(function(v) {
+                            return parseInt(v, 10);
+                        }),
+                        _csrf: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    };
+
+                    fetch(window.BASE_PATH + '/superadmin/save-to-collections', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload),
+                        credentials: 'same-origin'
+                    }).then(function(res) {
+                        return res.json();
+                    }).then(function(json) {
+                        if (json.ok) {
+                            selected.forEach(function(cid) {
+                                var cb = qs('#save-collection-modal input[value="' + cid + '"]');
+                                if (cb) {
+                                    var span = cb.nextElementSibling;
+                                    if (span) {
+                                        var m = span.textContent.match(/\((\d+)\)$/);
+                                        if (m) {
+                                            var n = parseInt(m[1], 10) + 1;
+                                            span.textContent = span.textContent.replace(/\(\d+\)$/, '(' + n + ')');
+                                        } else {
+                                            span.textContent = span.textContent + ' (1)';
+                                        }
+                                    }
+                                }
+                            });
+                            alert('Lưu vào bộ sưu tập thành công. Đã thêm: ' + (json.added || 0));
+                        } else {
+                            alert('Lỗi: ' + (json.message || 'Không xác định'));
+                        }
+                        modal.style.display = 'none';
+                    }).catch(function(err) {
+                        console.error(err);
+                        alert('Lỗi khi kết nối server');
+                        modal.style.display = 'none';
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

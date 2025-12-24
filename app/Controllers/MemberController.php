@@ -66,9 +66,22 @@ class MemberController extends Controller
                 exit;
             }
 
+            // check employee code uniqueness (ma_nhan_su)
+            if (!empty($data['ma_nhan_su']) && User::findByMaNhanSu($data['ma_nhan_su'])) {
+                $_SESSION['error'] = 'Mã nhân sự đã được sử dụng.';
+                header('Location: ' . BASE_URL . '/superadmin/add-personnel');
+                exit;
+            }
+
             $data['password'] = password_hash($password, PASSWORD_DEFAULT);
 
-            $ok = User::createWithRole($data);
+            try {
+                $ok = User::createWithRole($data);
+            } catch (PDOException $e) {
+                $_SESSION['error'] = 'Lỗi khi lưu vào cơ sở dữ liệu.';
+                header('Location: ' . BASE_URL . '/superadmin/add-personnel');
+                exit;
+            }
             if ($ok) {
                 $_SESSION['success'] = 'Tạo nhân sự thành công.';
                 header('Location: ' . BASE_URL . '/superadmin/management-owner');

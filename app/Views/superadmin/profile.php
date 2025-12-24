@@ -64,11 +64,10 @@
                 </div>
                 <i class="fa-solid fa-chevron-up" style="font-size:12px;"></i>
             </div>
-
-            <div class="sub-setting-item">Điều khoản dịch vụ</div>
-            <div class="sub-setting-item">Chính sách bảo mật</div>
-            <div class="sub-setting-item">Chính sách hoàn tiền/đổi trả</div>
-            <div class="sub-setting-item">Chính sách Cookie</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/terms-service'">Điều khoản dịch vụ</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/privacy-policy'">Chính sách bảo mật</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/payment-policy'">Chính sách hoàn tiền/đổi trả</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/cookie-policy'">Chính sách Cookie</div>
         </div>
         <button class="btn-logout" onclick="window.location.href='<?= BASE_URL ?>/superadmin/logout'">Đăng xuất</button>
         <div style="height: 60px;"></div>

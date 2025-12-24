@@ -88,4 +88,39 @@ class Collection extends Model
             return false;
         }
     }
+
+    // Add a single item to a collection (avoid duplicates)
+    public static function addItem(int $collectionId, int $resourceId, string $resourceType = 'bat_dong_san')
+    {
+        $db = self::db();
+        // check exists
+        $check = $db->prepare("SELECT id FROM collection_items WHERE collection_id = ? AND resource_id = ? AND resource_type = ? LIMIT 1");
+        $check->execute([$collectionId, $resourceId, $resourceType]);
+        if ($check->fetch()) {
+            return false; // already exists
+        }
+
+        $sql = "INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at) VALUES (?, ?, ?, NOW())";
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$collectionId, $resourceId, $resourceType]);
+            return true;
+        } catch (PDOException $e) {
+            $msg = date('Y-m-d H:i:s') . " - Collection::addItem error: " . $e->getMessage() . " Params: " . json_encode([$collectionId, $resourceId, $resourceType]) . "\n";
+            @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
+            return false;
+        }
+    }
+
+    // Add multiple items (collection ids array) for a resource
+    public static function addItems(array $collectionIds, int $resourceId, string $resourceType = 'bat_dong_san')
+    {
+        $added = 0;
+        foreach ($collectionIds as $cid) {
+            $cid = (int)$cid;
+            if ($cid <= 0) continue;
+            if (self::addItem($cid, $resourceId, $resourceType)) $added++;
+        }
+        return $added;
+    }
 }
