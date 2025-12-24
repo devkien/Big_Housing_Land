@@ -838,43 +838,48 @@ class AdminController extends Controller
         $legal = isset($_GET['legal']) ? trim($_GET['legal']) : '';
         $area = isset($_GET['area']) ? (float)$_GET['area'] : 0;
 
-        $db = Database::connect();
-        $sql = "SELECT * FROM properties WHERE 1=1";
-        $params = [];
+        $properties = null; // Khởi tạo là null để không hiển thị gì ban đầu
 
-        if ($type !== '') {
-            $sql .= " AND loai_bds = ?";
-            $params[] = $type;
-        }
+        // Chỉ thực hiện tìm kiếm nếu có ít nhất một tham số được gửi lên (người dùng đã bấm tìm kiếm)
+        if (isset($_GET['type']) || isset($_GET['location']) || isset($_GET['price']) || isset($_GET['legal']) || isset($_GET['area'])) {
+            $db = Database::connect();
+            $sql = "SELECT * FROM properties WHERE 1=1";
+            $params = [];
 
-        if ($location !== '') {
-            $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
-            $like = '%' . $location . '%';
-            array_push($params, $like, $like, $like, $like);
-        }
+            if ($type !== '') {
+                $sql .= " AND loai_bds = ?";
+                $params[] = $type;
+            }
 
-        if ($price !== '') {
-            if ($price === 'lt_5') $sql .= " AND gia_chao < 5000000000";
-            elseif ($price === '5_10') $sql .= " AND gia_chao BETWEEN 5000000000 AND 10000000000";
-            elseif ($price === '10_20') $sql .= " AND gia_chao BETWEEN 10000000000 AND 20000000000";
-            elseif ($price === 'gt_20') $sql .= " AND gia_chao > 20000000000";
-        }
+            if ($location !== '') {
+                $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+                $like = '%' . $location . '%';
+                array_push($params, $like, $like, $like, $like);
+            }
 
-        if ($legal === 'so_do') $sql .= " AND phap_ly LIKE '%so%'";
-        if ($legal === 'khong_so') $sql .= " AND phap_ly LIKE '%khong%'";
+            if ($price !== '') {
+                if ($price === 'lt_5') $sql .= " AND gia_chao < 5000000000";
+                elseif ($price === '5_10') $sql .= " AND gia_chao BETWEEN 5000000000 AND 10000000000";
+                elseif ($price === '10_20') $sql .= " AND gia_chao BETWEEN 10000000000 AND 20000000000";
+                elseif ($price === 'gt_20') $sql .= " AND gia_chao > 20000000000";
+            }
 
-        if ($area > 0) {
-            $sql .= " AND dien_tich >= ?";
-            $params[] = $area;
-        }
+            if ($legal === 'so_do') $sql .= " AND phap_ly LIKE '%so%'";
+            if ($legal === 'khong_so') $sql .= " AND phap_ly LIKE '%khong%'";
 
-        $sql .= " ORDER BY id DESC LIMIT 100";
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($area > 0) {
+                $sql .= " AND dien_tich >= ?";
+                $params[] = $area;
+            }
 
-        foreach ($properties as &$p) {
-            $p['thumb'] = Property::getFirstImagePath((int)$p['id']);
+            $sql .= " ORDER BY id DESC LIMIT 100";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($properties as &$p) {
+                $p['thumb'] = Property::getFirstImagePath((int)$p['id']);
+            }
         }
 
         $this->view('admin/auto_match', [
