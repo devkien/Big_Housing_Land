@@ -34,9 +34,9 @@
                 <div class="form-group">
                     <select class="form-input" name="phong_ban">
                         <option value="">Chọn Phòng Ban</option>
-                        <option value="kd1">Thiện Chiến</option>
-                        <option value="kd2">Hùng Phát</option>
-                        <option value="tc">Tinh Nhuệ</option>
+                        <option value="thien_chien">Thiện Chiến</option>
+                        <option value="hung_phat">Hùng Phát</option>
+                        <option value="tinh_nhue">Tinh Nhuệ</option>
                     </select>
                 </div>
 
