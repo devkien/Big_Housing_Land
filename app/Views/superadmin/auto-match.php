@@ -174,9 +174,19 @@
             <div id="post-list-container" style="padding-bottom: 80px;">
                 <?php foreach ($properties as $p) :
                     $title = htmlspecialchars($p['tieu_de'] ?? '');
-                    $price = isset($p['gia_chao']) ? number_format($p['gia_chao']) : '';
-                    $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
-                    $status = htmlspecialchars($p['trang_thai'] ?? '');
+                    $code = htmlspecialchars($p['ma_hien_thi'] ?? ($p['id'] ?? ''));
+                    $statusKey = $p['trang_thai'] ?? '';
+                    $statusMap = [
+                        'ban_manh' => 'Bán mạnh',
+                        'tam_dung_ban' => 'Tạm dừng bán',
+                        'dung_ban' => 'Dừng bán',
+                        'da_ban' => 'Đã bán',
+                        'tang_chao' => 'Tăng chào',
+                        'ha_chao' => 'Hạ chào'
+                    ];
+                    $statusLabel = htmlspecialchars($statusMap[$statusKey] ?? $statusKey);
+
+                    // address
                     $address = trim($p['dia_chi_chi_tiet'] ?? '');
                     if ($address === '') {
                         $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -184,28 +194,122 @@
                     } else {
                         $address = htmlspecialchars($address);
                     }
-                    $thumb = '';
+
+                    // thumbnail
+                    $thumbHtml = '';
                     if (!empty($p['thumb'])) {
                         $img = $p['thumb'];
                         if (stripos($img, 'http://') === 0 || stripos($img, 'https://') === 0) $src = $img;
                         else $src = rtrim(BASE_URL, '/') . '/' . ltrim($img, '/');
-                        $thumb = '<img src="' . htmlspecialchars($src) . '" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">';
+                        $thumbHtml = '<img src="' . htmlspecialchars($src) . '" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">';
                     } else {
-                        $thumb = '<div style="width:100%;height:100%;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#888;">thumb</div>';
+                        $thumbHtml = '<div style="width:100%;height:100%;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#888;">thumb</div>';
+                    }
+
+                    // price + per-area formatting (reuse logic from resource-detail)
+                    $gia = isset($p['gia_chao']) && $p['gia_chao'] !== null && $p['gia_chao'] !== '' ? (float)$p['gia_chao'] : null;
+                    $area = isset($p['dien_tich']) && $p['dien_tich'] !== null && $p['dien_tich'] !== '' ? (float)$p['dien_tich'] : null;
+                    $areaUnit = strtolower(trim($p['don_vi_dien_tich'] ?? 'm2'));
+                    if ($gia === null) {
+                        $mainPrice = 'Liên hệ';
+                    } else {
+                        if ($gia >= 1000000000) {
+                            $val = round($gia / 1000000000, 1);
+                            $val = rtrim(rtrim(number_format($val, 1, '.', ''), '0'), '.');
+                            $mainPrice = $val . ' tỷ';
+                        } elseif ($gia >= 1000000) {
+                            $val = round($gia / 1000000);
+                            $mainPrice = $val . ' triệu';
+                        } else {
+                            $mainPrice = number_format($gia, 0, ',', '.') . ' VND';
+                        }
+                    }
+                    $perUnitText = '';
+                    if ($gia !== null && $area && $area > 0) {
+                        $ppu_million = ($gia / $area) / 1000000;
+                        $unitLabel = ($areaUnit === 'ha') ? 'tr/ha' : 'tr/m²';
+                        $ppu_round = round($ppu_million);
+                        $perUnitText = $ppu_round . $unitLabel;
+                    }
+
+                    // tags: attempt to derive simple tags, show only if present
+                    $tags = [];
+                    if (!empty($p['tags'])) {
+                        $raw = $p['tags'];
+                        $decoded = @json_decode($raw, true);
+                        if (is_array($decoded)) $tags = $decoded;
+                        else $tags = array_map('trim', explode(',', $raw));
+                    } else {
+                        // simple keyword checks in title
+                        $td = strtolower($p['tieu_de'] ?? '');
+                        if (strpos($td, 'mặt phố') !== false) $tags[] = 'Mặt phố';
+                        if (strpos($td, 'kinh doanh') !== false) $tags[] = 'Kinh doanh';
+                        if (strpos($td, 'cửa hàng') !== false) $tags[] = 'Cửa hàng';
+                        if (strpos($td, 'lô') !== false) $tags[] = 'Lô';
                     }
                 ?>
-                    <article class="post-card" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource?property=<?= (int)$p['id'] ?>'">
-                        <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;">
-                            <div style="width:96px;height:72px;flex:0 0 96px;"><?= $thumb ?></div>
-                            <div style="flex:1;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;">
-                                    <div style="font-weight:700;"><?= $title ?></div>
-                                    <div class="price-text"><?= $price ? ($price . ' VND') : '' ?></div>
+                    <article class="post-card" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= (int)$p['id'] ?>'">
+                        <div class="user-row">
+                            <div class="user-left">
+                                <img src="<?= rtrim(BASE_URL, '/') . '/icon/menuanhdaidien.png' ?>" class="user-avatar">
+                                <div class="user-info">
+                                    <div class="user-name"><?= htmlspecialchars($p['phong_ban'] ?? 'Người đăng') ?> - <?= htmlspecialchars($p['user_id'] ?? '') ?></div>
+                                    <div class="rating-stars">
+                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-star"></i>
+                                        <i class="fa-solid fa-star"></i>
+                                        <div class="contact-icons">
+                                            <i class="fa-brands fa-facebook-messenger c-icon icon-mess"></i>
+                                            <i class="fa-solid fa-z c-icon icon-zalo"></i>
+                                            <i class="fa-solid fa-phone c-icon icon-phone"></i>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style="margin-top:6px;color:#666;font-size:13px;"><?= $address ?></div>
-                                <div style="margin-top:8px;color:#999;font-size:12px;">Mã: <?= $code ?> &nbsp; &bull; &nbsp; Trạng thái: <?= $status ?></div>
+                            </div>
+                            <button class="btn-status-outline"><?= $statusLabel ?></button>
+                        </div>
+
+                        <div class="price-tag-row">
+                            <div class="price-text"><?= htmlspecialchars($mainPrice) ?><?= $perUnitText ? ' - ' . htmlspecialchars($perUnitText) : '' ?></div>
+                            <div class="tags-group">
+                                <?php foreach ($tags as $t): ?>
+                                    <span class="tag-gray"><?= htmlspecialchars($t) ?></span>
+                                <?php endforeach; ?>
                             </div>
                         </div>
+
+                        <div class="post-content">
+                            <div class="auto-truncate-text">
+                                <strong><?= $title ?></strong>
+                                <?= nl2br(htmlspecialchars($p['mo_ta'] ?? '')) ?>
+                            </div>
+                            <div style="margin-top: 5px;"></div>
+                            <?php if (!empty($p['ma_gioi_thieu'] ?? null)): ?>
+                                <span class="hashtag"><?= htmlspecialchars($p['ma_gioi_thieu']) ?></span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="meta-row">
+                            <?php if (!empty($p['ma_so_so'])): ?>
+                                <span class="red-badge">Số đỏ/sổ hồng</span>
+                            <?php endif; ?>
+                            <span class="code-text">Mã số: <span class="code-number">#<?= $code ?></span></span>
+                        </div>
+
+                        <?php
+                        // image: use thumb if available, else placeholder
+                        $imgSrc = '';
+                        if (!empty($p['thumb'])) {
+                            $imgRaw = $p['thumb'];
+                            if (stripos($imgRaw, 'http://') === 0 || stripos($imgRaw, 'https://') === 0) $imgSrc = $imgRaw;
+                            else $imgSrc = rtrim(BASE_URL, '/') . '/' . ltrim($imgRaw, '/');
+                        } else {
+                            $imgSrc = rtrim(BASE_URL, '/') . '/img/phongkhach.png';
+                        }
+                        ?>
+                        <img src="<?= htmlspecialchars($imgSrc) ?>" class="post-image-large">
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -256,6 +360,9 @@
                     if (area) params.set('area', area);
                     else params.delete('area');
                     params.delete('page');
+
+                    // ensure search flag is set so server knows to run query
+                    params.set('searched', '1');
 
                     const qs = params.toString();
                     window.location.search = qs ? ('?' + qs) : '';

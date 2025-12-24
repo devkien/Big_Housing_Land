@@ -25,7 +25,7 @@
                     <div class="user-left">
                         <img src="../icon/menuanhdaidien.png" class="user-avatar">
                         <div class="user-info">
-                            <div class="user-name">TP Nguyễn Kim Ngàn - NPHN - 888</div>
+                            <div class="user-name"><?php echo htmlspecialchars($property['phong_ban'] ?? 'Người đăng') ?> - <?php echo htmlspecialchars($property['user_id'] ?? '') ?></div>
                             <div class="rating-stars">
                                 <i class="fa-solid fa-star"></i>
                                 <i class="fa-solid fa-star"></i>
@@ -39,38 +39,99 @@
                             </div>
                         </div>
                     </div>
-                    <button class="btn-status-outline">Bán mạnh</button>
+                    <button class="btn-status-outline"><?php
+                                                        $statusMap = [
+                                                            'ban_manh' => 'Bán mạnh',
+                                                            'tam_dung_ban' => 'Tạm dừng bán',
+                                                            'dung_ban' => 'Dừng bán',
+                                                            'da_ban' => 'Đã bán',
+                                                            'tang_chao' => 'Tăng chào',
+                                                            'ha_chao' => 'Hạ chào',
+                                                        ];
+                                                        echo htmlspecialchars($statusMap[$property['trang_thai']] ?? ($property['trang_thai'] ?? ''));
+                                                        ?></button>
                 </div>
 
                 <div class="price-tag-row">
-                    <div class="price-text">8.4 tỷ - 646tr/m²</div>
+                    <div class="price-text"><?php
+                                            $gia = isset($property['gia_chao']) && $property['gia_chao'] !== null && $property['gia_chao'] !== '' ? (float)$property['gia_chao'] : null;
+                                            $area = isset($property['dien_tich']) && $property['dien_tich'] !== null && $property['dien_tich'] !== '' ? (float)$property['dien_tich'] : null;
+                                            $areaUnit = strtolower(trim($property['don_vi_dien_tich'] ?? 'm2'));
+
+                                            // Format main price
+                                            if ($gia === null) {
+                                                $mainPrice = 'Liên hệ';
+                                            } else {
+                                                if ($gia >= 1000000000) {
+                                                    $val = round($gia / 1000000000, 1);
+                                                    $val = rtrim(rtrim(number_format($val, 1, '.', ''), '0'), '.');
+                                                    $mainPrice = $val . ' tỷ';
+                                                } elseif ($gia >= 1000000) {
+                                                    $val = round($gia / 1000000);
+                                                    $mainPrice = $val . ' triệu';
+                                                } else {
+                                                    $mainPrice = number_format($gia, 0, ',', '.') . ' VND';
+                                                }
+                                            }
+
+                                            // Compute price per unit if possible
+                                            $perUnitText = '';
+                                            if ($gia !== null && $area && $area > 0) {
+                                                // price per unit in million VND
+                                                $ppu_million = ($gia / $area) / 1000000;
+                                                // choose unit label
+                                                if ($areaUnit === 'ha') {
+                                                    $unitLabel = 'tr/ha';
+                                                } else {
+                                                    $unitLabel = 'tr/m²';
+                                                }
+                                                $ppu_round = round($ppu_million);
+                                                $perUnitText = $ppu_round . $unitLabel;
+                                            } elseif ($area && $area > 0) {
+                                                // fallback to show area if can't compute price per unit
+                                                $perUnitText = rtrim(rtrim(number_format($area, 2, ',', '.'), '0'), ',') . ($areaUnit === 'ha' ? ' ha' : ' m²');
+                                            }
+
+                                            echo htmlspecialchars($mainPrice) . ($perUnitText ? ' - ' . htmlspecialchars($perUnitText) : '');
+                                            ?></div>
                     <div class="tags-group">
-                        <span class="tag-gray">t phố ,Kinh doanh ,Cửa hàng ,Lô</span>
+                        <span class="tag-gray"><?php
+                                                $addrParts = [];
+                                                if (!empty($property['tinh_thanh'])) $addrParts[] = $property['tinh_thanh'];
+                                                if (!empty($property['quan_huyen'])) $addrParts[] = $property['quan_huyen'];
+                                                if (!empty($property['xa_phuong'])) $addrParts[] = $property['xa_phuong'];
+                                                if (!empty($property['dia_chi_chi_tiet'])) $addrParts[] = $property['dia_chi_chi_tiet'];
+                                                $address = !empty($addrParts) ? implode(' , ', $addrParts) : 'Địa chỉ chưa cập nhật';
+                                                echo htmlspecialchars($address);
+                                                ?></span>
                     </div>
                 </div>
 
                 <div class="post-content">
                     <div class="auto-truncate-text">
-                        <strong>NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
-                        NHÀ PHỐ VIỆT NAM - CHỐT NHÀ TOÀN QUỐC</strong> Kính thưa Chủ tịch, Tổng Giám đốc cùng các ban lãnh đạo. Tôi Trưởng phòng Nguyễn Kim Ngân - NPDN xin vui mừng thông báo CV Nguyễn Khanh - Nhà Phố 888 chốt hạ thành công căn nhà siêu phẩm.
+                        <strong><?php echo htmlspecialchars($property['tieu_de'] ?? '') ?></strong>
+                        <?php echo nl2br(htmlspecialchars($property['mo_ta'] ?? '')) ?>
                     </div>
                     <div style="margin-top: 5px;"></div>
-                    <span class="hashtag">#tpnguyenkimngan</span> <span class="hashtag">#nphn</span> <span class="hashtag">#nphn888</span>
+                    <?php if (!empty($property['ma_gioi_thieu'] ?? null)): ?>
+                        <span class="hashtag"><?php echo htmlspecialchars($property['ma_gioi_thieu']) ?></span>
+                    <?php endif; ?>
                 </div>
 
                 <div class="meta-row">
-                    <span class="red-badge">Số đỏ/sổ hồng</span>
-                    <span class="code-text">Mã số: <span class="code-number">#101944</span></span>
+                    <?php if (!empty($property['ma_so_so'])): ?>
+                        <span class="red-badge">Số đỏ/sổ hồng</span>
+                    <?php endif; ?>
+                    <span class="code-text">Mã số: <span class="code-number"><?php echo htmlspecialchars('#' . ($property['ma_hien_thi'] ?? $property['id'])) ?></span></span>
                 </div>
 
-                <img src="../images/phongkhach.png" class="post-image-large">
+                <?php
+                $img = '../images/phongkhach.png';
+                if (!empty($media) && is_array($media) && !empty($media[0]['media_path'])) {
+                    $img = '../' . ltrim($media[0]['media_path'], '/');
+                }
+                ?>
+                <img src="<?php echo htmlspecialchars($img) ?>" class="post-image-large">
             </article>
         </div>
 

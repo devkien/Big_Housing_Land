@@ -18,65 +18,72 @@ class AutoMatchController extends Controller
         $legal = isset($_GET['legal']) ? trim($_GET['legal']) : '';
         $area = isset($_GET['area']) ? (float)$_GET['area'] : 0;
 
-        $db = Database::connect();
-        $sql = "SELECT * FROM properties WHERE 1=1";
-        $params = [];
+        $properties = [];
 
-        if ($type !== '') {
-            // expecting 'ban' or 'cho_thue'
-            $sql .= " AND loai_bds = ?";
-            $params[] = $type;
-        }
+        // Only run the query after user has performed a search (clicked 'Tìm kiếm')
+        $shouldSearch = isset($_GET['searched']) && $_GET['searched'] == '1';
 
-        if ($location !== '') {
-            $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
-            $like = '%' . $location . '%';
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
-        }
+        if ($shouldSearch) {
+            $db = Database::connect();
+            $sql = "SELECT * FROM properties WHERE 1=1";
+            $params = [];
 
-        if ($price !== '') {
-            // interpret price ranges in VND
-            if ($price === 'lt_5') {
-                $sql .= " AND gia_chao < ?";
-                $params[] = 5000000000;
-            } elseif ($price === '5_10') {
-                $sql .= " AND gia_chao BETWEEN ? AND ?";
-                $params[] = 5000000000;
-                $params[] = 10000000000;
-            } elseif ($price === '10_20') {
-                $sql .= " AND gia_chao BETWEEN ? AND ?";
-                $params[] = 10000000000;
-                $params[] = 20000000000;
-            } elseif ($price === 'gt_20') {
-                $sql .= " AND gia_chao > ?";
-                $params[] = 20000000000;
+            if ($type !== '') {
+                // expecting 'ban' or 'cho_thue'
+                $sql .= " AND loai_bds = ?";
+                $params[] = $type;
             }
-        }
 
-        if ($legal !== '') {
-            // legal options: 'so_do' or 'khong_so'
-            if ($legal === 'so_do') {
-                $sql .= " AND phap_ly LIKE ?";
-                $params[] = '%so%';
-            } elseif ($legal === 'khong_so') {
-                $sql .= " AND phap_ly LIKE ?";
-                $params[] = '%khong%';
+            if ($location !== '') {
+                $sql .= " AND (tinh_thanh LIKE ? OR quan_huyen LIKE ? OR xa_phuong LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+                $like = '%' . $location . '%';
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
             }
+
+            if ($price !== '') {
+                // interpret price ranges in VND
+                if ($price === 'lt_5') {
+                    $sql .= " AND gia_chao < ?";
+                    $params[] = 5000000000;
+                } elseif ($price === '5_10') {
+                    $sql .= " AND gia_chao BETWEEN ? AND ?";
+                    $params[] = 5000000000;
+                    $params[] = 10000000000;
+                } elseif ($price === '10_20') {
+                    $sql .= " AND gia_chao BETWEEN ? AND ?";
+                    $params[] = 10000000000;
+                    $params[] = 20000000000;
+                } elseif ($price === 'gt_20') {
+                    $sql .= " AND gia_chao > ?";
+                    $params[] = 20000000000;
+                }
+            }
+
+            if ($legal !== '') {
+                // legal options: 'so_do' or 'khong_so'
+                if ($legal === 'so_do') {
+                    $sql .= " AND phap_ly LIKE ?";
+                    $params[] = '%so%';
+                } elseif ($legal === 'khong_so') {
+                    $sql .= " AND phap_ly LIKE ?";
+                    $params[] = '%khong%';
+                }
+            }
+
+            if ($area > 0) {
+                $sql .= " AND dien_tich >= ?";
+                $params[] = $area;
+            }
+
+            $sql .= " ORDER BY id DESC LIMIT 100";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-
-        if ($area > 0) {
-            $sql .= " AND dien_tich >= ?";
-            $params[] = $area;
-        }
-
-        $sql .= " ORDER BY id DESC LIMIT 100";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // attach thumbnail (first media) if available
         foreach ($properties as &$p) {

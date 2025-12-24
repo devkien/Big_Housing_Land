@@ -53,6 +53,15 @@ class User extends Model
         return $stmt->fetch();
     }
 
+    // Find user by employee code (ma_nhan_su)
+    public static function findByMaNhanSu($code)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT id FROM users WHERE ma_nhan_su = ? LIMIT 1");
+        $stmt->execute([$code]);
+        return $stmt->fetch();
+    }
+
     // ===== UPDATE PROFILE =====
     public static function update($id, $data)
     {

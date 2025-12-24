@@ -161,6 +161,7 @@ $router->get('/superadmin/detailprofile', 'SuperAdminController@detailprofile', 
 $router->get('/superadmin/editprofile', 'SuperAdminController@editprofile', 'role:super_admin');
 $router->post('/superadmin/editprofile', 'SuperAdminController@editprofile', 'role:super_admin');
 
+
 // Change password routes
 $router->get('/superadmin/changepassword', 'SuperAdminController@changepassword', 'role:super_admin');
 $router->post('/superadmin/changepassword', 'SuperAdminController@changepassword', 'role:super_admin');
@@ -184,6 +185,8 @@ $router->get('/superadmin/management-resource-post', 'ResourceController@resourc
 $router->post('/superadmin/management-resource-post', 'ResourceController@resourcePost', 'role:super_admin');
 // Endpoint to update property status via AJAX
 $router->post('/superadmin/property-update-status', 'ResourceController@updateStatus', 'role:super_admin');
+// Save resource to collections (AJAX)
+$router->post('/superadmin/save-to-collections', 'ResourceController@saveToCollections', 'role:super_admin');
 
 // Collection management routes
 $router->get('/superadmin/collection', 'CollectionController@collection', 'role:super_admin');
@@ -216,6 +219,14 @@ $router->post('/superadmin/internal-info-list', 'InformationController@internalI
 $router->get('/superadmin/internal-info-detail', 'InformationController@InternalInfoDetail', 'role:super_admin,admin');
 $router->get('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');
 $router->post('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');
+
+
+// terms of service
+$router->get('/superadmin/terms-service', 'PolicyController@termsService', 'role:super_admin');
+$router->get('/superadmin/privacy-policy', 'PolicyController@privacyPolicy', 'role:super_admin');
+$router->get('/superadmin/payment-policy', 'PolicyController@paymentPolicy', 'role:super_admin');
+$router->get('/superadmin/cookie-policy', 'PolicyController@cookiePolicy', 'role:super_admin');
+
 
 
 

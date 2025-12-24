@@ -239,6 +239,10 @@ class ResourceController extends Controller
             $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
         }
 
+        // load collections for "save to collection" modal
+        require_once __DIR__ . '/../Models/Collection.php';
+        $collections = Collection::allWithCount();
+
         $this->view('superadmin/resource', [
             'properties' => $properties,
             'page' => $page,
@@ -247,7 +251,8 @@ class ResourceController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            'collections' => $collections
         ]);
     }
 
@@ -277,13 +282,92 @@ class ResourceController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            // load collections for save modal
+            'collections' => (function () {
+                require_once __DIR__ . '/../Models/Collection.php';
+                return Collection::allWithCount();
+            })()
         ]);
     }
 
     public function resourceDetail()
     {
-        $this->view('superadmin/resource-detail');
+        require_once __DIR__ . '/../Models/Property.php';
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if (!$id) {
+            $_SESSION['error'] = 'ID tài nguyên không hợp lệ.';
+            header('Location: ' . BASE_URL . '/superadmin/management-resource');
+            exit;
+        }
+
+        $property = Property::findById($id);
+        if (!$property) {
+            $_SESSION['error'] = 'Không tìm thấy tài nguyên.';
+            header('Location: ' . BASE_URL . '/superadmin/management-resource');
+            exit;
+        }
+
+        $media = Property::getMedia($id);
+
+        $this->view('superadmin/resource-detail', [
+            'property' => $property,
+            'media' => $media
+        ]);
+    }
+
+    // AJAX: save property into selected collections
+    public function saveToCollections()
+    {
+        // Accept JSON body OR standard form POST (fallback)
+        require_once __DIR__ . '/../Helpers/functions.php';
+        $body = file_get_contents('php://input');
+        $logPath = __DIR__ . '/../../storage/logs/save_collections.log';
+        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Raw body: " . $body . "\n", FILE_APPEND);
+
+        $data = json_decode($body, true);
+        // If not JSON, try form-encoded POST
+        if (!is_array($data) || empty($data)) {
+            if (!empty($_POST)) {
+                $data = $_POST;
+                @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Using \\$_POST payload: " . json_encode($data) . "\n", FILE_APPEND);
+            }
+        }
+
+        header('Content-Type: application/json');
+
+        if (!$data || !isset($data['property_id']) || !isset($data['collections'])) {
+            @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Missing params: " . json_encode($data) . "\n", FILE_APPEND);
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Missing parameters']);
+            return;
+        }
+
+        $csrfOk = verify_csrf($data['_csrf'] ?? ($_POST['_csrf'] ?? null));
+        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - CSRF ok: " . ($csrfOk ? '1' : '0') . "\n", FILE_APPEND);
+        if (!$csrfOk) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token']);
+            return;
+        }
+
+        $propertyId = (int)$data['property_id'];
+        $collections = is_array($data['collections']) ? $data['collections'] : [];
+
+        if ($propertyId <= 0 || empty($collections)) {
+            @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Invalid params: property_id={$propertyId}, collections=" . json_encode($collections) . "\n", FILE_APPEND);
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Invalid parameters']);
+            return;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+
+        $added = Collection::addItems($collections, $propertyId, 'bat_dong_san');
+        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Added count: {$added}\n", FILE_APPEND);
+
+        echo json_encode(['ok' => true, 'added' => $added]);
     }
 
     // AJAX handler to update property status

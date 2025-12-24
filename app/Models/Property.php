@@ -188,4 +188,14 @@ class Property extends Model
         $stmt->execute($params);
         return (int)$stmt->fetchColumn();
     }
+
+    // Find a single property by its primary id
+    public static function findById(int $id)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT * FROM properties WHERE id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
 }
