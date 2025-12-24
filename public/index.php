@@ -216,6 +216,9 @@ $router->post('/superadmin/add-internal-info', 'InformationController@addInterna
 $router->get('/superadmin/internal-info-list', 'InformationController@internalInfoList', 'role:super_admin,admin');
 $router->post('/superadmin/internal-info-list', 'InformationController@internalInfoList', 'role:super_admin,admin');
 
+// Pin/unpin internal info (AJAX)
+$router->post('/superadmin/internal-info-pin', 'InformationController@pinInternalInfo', 'role:super_admin,admin');
+
 $router->get('/superadmin/internal-info-detail', 'InformationController@InternalInfoDetail', 'role:super_admin,admin');
 $router->get('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');
 $router->post('/superadmin/internal-info-edit', 'InformationController@InternalInfoEdit', 'role:super_admin,admin');

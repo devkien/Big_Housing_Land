@@ -10,7 +10,25 @@ class SuperAdminController extends Controller
     }
     public function index()
     {
-        $this->view('superadmin/home');
+        // Load pinned internal posts for news feed
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        require_once __DIR__ . '/../Models/User.php';
+        $pinned = InternalPost::getPinned(6);
+        // expand each to include images (getById adds images) and author name
+        $pinnedFull = [];
+        foreach ($pinned as $p) {
+            $full = InternalPost::getById((int)$p['id']);
+            if ($full) {
+                $author = null;
+                if (!empty($full['user_id'])) {
+                    $author = User::findById((int)$full['user_id']);
+                }
+                $full['author_name'] = $author['ho_ten'] ?? $author['name'] ?? 'Big Housing Land';
+                $pinnedFull[] = $full;
+            }
+        }
+
+        $this->view('superadmin/home', ['pinnedPosts' => $pinnedFull]);
     }
 
     public function logout()

@@ -198,4 +198,28 @@ class Property extends Model
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
+
+    // Update the status (trang_thai) of a property by id.
+    public static function updateStatus(int $id, string $trang_thai)
+    {
+        $allowed = [
+            'ban_manh',
+            'tam_dung_ban',
+            'dung_ban',
+            'da_ban',
+            'tang_chao',
+            'ha_chao'
+        ];
+        if (!in_array($trang_thai, $allowed, true)) {
+            return false;
+        }
+
+        $db = self::db();
+        $stmt = $db->prepare("UPDATE properties SET trang_thai = ?, updated_at = NOW() WHERE id = ?");
+        try {
+            return (bool)$stmt->execute([$trang_thai, $id]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }

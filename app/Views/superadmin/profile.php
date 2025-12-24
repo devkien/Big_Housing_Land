@@ -75,6 +75,7 @@
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
+    <script src="<?= BASE_URL ?>/js/script.js"></script>
 </body>
 
 </html>

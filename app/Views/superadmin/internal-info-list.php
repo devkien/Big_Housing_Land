@@ -47,7 +47,15 @@
                                         </button>
                                     </td>
                                     <td style="text-align: center;">
-                                        <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
+                                        <?php $isPinned = !empty($p['is_pinned']) && $p['is_pinned'] == 1; ?>
+                                        <i class="fa-solid fa-thumbtack pin-icon"
+                                            data-pinned="<?= $isPinned ? 1 : 0 ?>"
+                                            style="
+                                                    color: <?= $isPinned ? '#0033cc' : '#ccc' ?>;
+                                                    cursor: pointer;
+                                                    <?= $isPinned ? 'transform: rotate(45deg);' : '' ?>
+                                                ">
+                                        </i>
                                     </td>
                                     <td><span class="text-id-blue"><?= htmlspecialchars($p['ma_hien_thi'] ?? '') ?></span></td>
                                     <td class="title-cell"><?= htmlspecialchars(mb_strimwidth(strip_tags($p['tieu_de'] ?? ''), 0, 80, '...')) ?></td>
@@ -163,13 +171,53 @@
                 };
             }
 
-            // Xử lý sự kiện click vào icon ghim
+            // Xử lý sự kiện click vào icon ghim (gọi AJAX để lưu vào DB)
             const pinIcons = document.querySelectorAll('.pin-icon');
             pinIcons.forEach(icon => {
-                icon.addEventListener('click', function() {
-                    const isPinned = this.style.color === 'rgb(0, 51, 204)' || this.style.color === '#0033cc';
-                    this.style.color = isPinned ? '#ccc' : '#0033cc';
-                    this.style.transform = isPinned ? 'rotate(0deg)' : 'rotate(45deg)';
+                icon.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tr = this.closest('tr');
+                    if (!tr) return;
+                    const id = parseInt(tr.getAttribute('data-id'), 10) || 0;
+                    const csrf = document.getElementById('csrf-token') ? document.getElementById('csrf-token').value : '';
+                    const currentlyPinned = parseInt(this.getAttribute('data-pinned') || 0, 10) === 1;
+                    const shouldPin = currentlyPinned ? 0 : 1;
+
+                    fetch('<?= BASE_URL ?>/superadmin/internal-info-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            id: id,
+                            pinned: shouldPin,
+                            _csrf: csrf
+                        })
+                    }).then(r => r.json()).then(json => {
+                        if (json && json.ok) {
+                            // update UI
+                            this.setAttribute('data-pinned', shouldPin ? 1 : 0);
+                            if (shouldPin) {
+                                this.classList.remove('fa-regular');
+                                this.classList.add('fa-solid');
+                                this.style.color = '#0033cc';
+                                this.style.transform = 'rotate(45deg)';
+                            } else {
+                                this.classList.remove('fa-solid');
+                                this.classList.add('fa-regular');
+                                this.style.color = '#ccc';
+                                this.style.transform = 'rotate(0deg)';
+                            }
+                        } else {
+                            alert((json && json.message) ? json.message : 'Không thể cập nhật ghim');
+                        }
+                    }).catch(err => {
+                        console.error('Pin request failed', err);
+                        alert('Lỗi khi cập nhật ghim');
+                    });
                 });
             });
 

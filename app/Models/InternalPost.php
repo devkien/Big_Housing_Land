@@ -53,6 +53,17 @@ class InternalPost extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // Get pinned posts ordered by pinned_at desc
+    public static function getPinned($limit = 5)
+    {
+        $db = self::db();
+        $limit = (int)$limit;
+        $sql = "SELECT * FROM internal_posts WHERE trang_thai = 1 AND is_pinned = 1 ORDER BY pinned_at DESC LIMIT " . $limit;
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // Convenience: get first image path or null
     public static function getFirstImagePath($postId)
     {
@@ -106,10 +117,23 @@ class InternalPost extends Model
         return $stmt->execute([$data['tieu_de'], $data['noi_dung'], $data['trang_thai'], $id]);
     }
 
+    // Set or unset the pinned flag for a post
+    public static function setPinned(int $id, bool $pinned)
+    {
+        $db = self::db();
+        if ($pinned) {
+            $stmt = $db->prepare("UPDATE internal_posts SET is_pinned = 1, pinned_at = NOW(), updated_at = NOW() WHERE id = ?");
+            return $stmt->execute([$id]);
+        } else {
+            $stmt = $db->prepare("UPDATE internal_posts SET is_pinned = 0, pinned_at = NULL, updated_at = NOW() WHERE id = ?");
+            return $stmt->execute([$id]);
+        }
+    }
+
     public static function deleteById(int $id)
     {
         $db = self::db();
-        
+
         // 1. Xóa hình ảnh vật lý và record trong DB
         $images = self::getImages($id);
         foreach ($images as $img) {
@@ -120,10 +144,10 @@ class InternalPost extends Model
                 }
             }
         }
-        
+
         $stmt = $db->prepare("DELETE FROM internal_post_images WHERE internal_post_id = ?");
         $stmt->execute([$id]);
-        
+
         // Xóa thư mục chứa ảnh nếu rỗng
         $dir = __DIR__ . '/../../public/uploads/internal/' . $id;
         if (is_dir($dir)) {

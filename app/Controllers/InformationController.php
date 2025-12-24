@@ -186,6 +186,46 @@ class InformationController extends Controller
             'perPage' => $perPage
         ]);
     }
+
+    // AJAX endpoint to pin/unpin an internal post
+    public function pinInternalInfo()
+    {
+        require_once __DIR__ . '/../Helpers/functions.php';
+        require_once __DIR__ . '/../Models/InternalPost.php';
+
+        $body = file_get_contents('php://input');
+        $data = json_decode($body, true);
+        header('Content-Type: application/json');
+
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Invalid payload']);
+            return;
+        }
+
+        if (!verify_csrf($data['_csrf'] ?? null)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Invalid CSRF token']);
+            return;
+        }
+
+        $id = isset($data['id']) ? (int)$data['id'] : 0;
+        $pinned = isset($data['pinned']) ? (int)$data['pinned'] : null;
+
+        if ($id <= 0 || ($pinned !== 0 && $pinned !== 1)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Invalid parameters']);
+            return;
+        }
+
+        $ok = InternalPost::setPinned($id, $pinned === 1);
+        if ($ok) {
+            echo json_encode(['ok' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'DB update failed']);
+        }
+    }
     public function InternalInfoDetail()
     {
         require_once __DIR__ . '/../Models/InternalPost.php';
