@@ -93,6 +93,14 @@ $router->get('/management-resource', 'MainController@resource', 'auth');
 $router->get('/management-resource-rent', 'MainController@resourceRent', 'auth');
 $router->get('/report_list', 'MainController@reportList', 'auth');
 $router->post('/report_list', 'MainController@reportList', 'auth');
+$router->get('/report_customer', 'MainController@reportCustomerDetail', 'auth');
+$router->get('/detail', 'MainController@detail', 'auth');
+$router->get('/collection', 'MainController@collection', 'auth');
+$router->get('/cre-collection', 'MainController@creCollection', 'auth');
+$router->get('/policy', 'MainController@policy', 'auth');
+$router->get('/info', 'MainController@info', 'auth');
+$router->get('/internal-info-detail', 'MainController@internalInfoDetail', 'auth');
+$router->get('/notification', 'MainController@notification', 'auth');
 
 
 
@@ -107,14 +115,39 @@ $router->post('/admin/editprofile', 'AdminController@editprofile', 'role:admin,s
 // Change password routes
 $router->get('/admin/changepassword', 'AdminController@changepassword', 'role:admin,super_admin');
 $router->post('/admin/changepassword', 'AdminController@changepassword', 'role:admin,super_admin');
+// Resource  management routes kho tài nguyên
 $router->get('/admin/management-resource', 'AdminController@resource', 'role:admin,super_admin');
 $router->get('/admin/management-resource-rent', 'AdminController@resourceRent', 'role:admin,super_admin');
 $router->get('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
 $router->post('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
+$router->post('/admin/update-resource-status', 'AdminController@updateResourceStatus', 'role:admin,super_admin');
+$router->post('/admin/add-to-collection', 'AdminController@addToCollection', 'role:admin,super_admin');
+$router->get('/admin/get-property-collections', 'AdminController@getPropertyCollections', 'role:admin,super_admin');
+$router->get('/admin/detail', 'AdminController@detail', 'role:admin,super_admin');
 $router->get('/admin/report_list', 'AdminController@reportList', 'role:admin,super_admin');
 $router->get('/admin/report_customer', 'AdminController@reportCustomerDetail', 'role:admin,super_admin');
+$router->post('/admin/report_list', 'AdminController@reportList', 'role:admin,super_admin');
+$router->get('/admin/collection', 'AdminController@collection', 'role:admin,super_admin');
+$router->get('/admin/cre-collection', 'AdminController@creCollection', 'role:admin,super_admin');
+$router->post('/admin/cre-collection', 'AdminController@creCollection', 'role:admin,super_admin');
+$router->post('/admin/collection-rename', 'AdminController@renameCollection', 'role:admin,super_admin');
+$router->post('/admin/collection-delete', 'AdminController@deleteCollection', 'role:admin,super_admin');
 
-
+$router->get('/admin/notification', 'AdminController@notification', 'role:admin,super_admin');
+$router->get('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
+$router->post('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
+$router->get('/admin/auto-match', 'AdminController@autoMatch', 'role:admin,super_admin');
+$router->post('/admin/auto-match', 'AdminController@autoMatch', 'role:admin,super_admin');
+$router->get('/admin/policy', 'AdminController@policy', 'role:admin,super_admin');
+// Admin - Internal Info routes
+$router->get('/admin/info', 'AdminController@info', 'role:admin,super_admin');
+$router->get('/admin/add-internal-info', 'AdminController@addInternalInfo', 'role:admin,super_admin');
+$router->post('/admin/add-internal-info', 'AdminController@addInternalInfo', 'role:admin,super_admin');
+$router->get('/admin/internal-info-list', 'AdminController@internalInfoList', 'role:admin,super_admin');
+$router->get('/admin/internal-info-detail', 'AdminController@InternalInfoDetail', 'role:admin,super_admin');
+$router->get('/admin/internal-info-edit', 'AdminController@InternalInfoEdit', 'role:admin,super_admin');
+$router->post('/admin/internal-info-edit', 'AdminController@InternalInfoEdit', 'role:admin,super_admin');
+$router->post('/admin/internal-info-delete', 'AdminController@deleteInternalInfo', 'role:admin,super_admin');
 
 // ==================== SuperAdmin ====================
 

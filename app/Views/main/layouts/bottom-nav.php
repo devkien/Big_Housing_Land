@@ -2,13 +2,13 @@
     <a href="<?= BASE_URL ?>/home" class="nav-item" id="nav-home">
         <img src="<?= BASE_URL ?>/icon/nhanhanha.png" alt="">
     </a>
-    <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-collection">
+    <a href="<?= BASE_URL ?>/collection" class="nav-item" id="nav-collection">
         <img src="<?= BASE_URL ?>/icon/menubosuutam.png" alt="">
     </a>
-    <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-info">
+    <a href="<?= BASE_URL ?>/info" class="nav-item" id="nav-info">
         <img src="<?= BASE_URL ?>/icon/menuthongtin.png" alt="">
     </a>
-    <a href="<?= BASE_URL ?>/#" class="nav-item" id="nav-notify">
+    <a href="<?= BASE_URL ?>/notification" class="nav-item" id="nav-notify">
         <img src="<?= BASE_URL ?>/icon/menuthongbao.png" alt="">
     </a>
     <a href="<?= BASE_URL ?>/profile" class="nav-item" id="nav-profile">

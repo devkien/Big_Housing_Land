@@ -123,6 +123,12 @@ class Property extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function getFirstImagePath(int $propertyId)
+    {
+        $media = self::getMedia($propertyId);
+        return !empty($media) ? ($media[0]['media_path'] ?? null) : null;
+    }
+
     // Get properties by loai_kho with optional search, pagination
     public static function getByLoaiKho(string $loai_kho, int $limit = 20, int $offset = 0, ?string $search = null, ?string $trang_thai = null)
     {
@@ -156,24 +162,6 @@ class Property extends Model
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return $rows;
-    }
-
-    // Find a single property by its ma_hien_thi code
-    public static function findByMaHienThi(string $code)
-    {
-        $db = self::db();
-        $stmt = $db->prepare("SELECT * FROM properties WHERE ma_hien_thi = ? LIMIT 1");
-        $stmt->execute([$code]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
-    }
-
-    // Update the trang_thai (status enum) for a property
-    public static function updateStatus(int $id, string $trang_thai)
-    {
-        $db = self::db();
-        $stmt = $db->prepare("UPDATE properties SET trang_thai = ? WHERE id = ?");
-        return $stmt->execute([$trang_thai, $id]);
     }
 
     public static function countByLoaiKho(string $loai_kho, ?string $search = null, ?string $trang_thai = null)

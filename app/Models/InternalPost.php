@@ -3,15 +3,45 @@
 class InternalPost extends Model
 {
     // Get active posts (trang_thai = 1) ordered by newest first
-    public static function getActive($limit = 50, $offset = 0)
+    public static function getActive($limit = 50, $offset = 0, $search = null)
     {
         $db = self::db();
         $limit = (int)$limit;
         $offset = (int)$offset;
-        $sql = "SELECT * FROM internal_posts WHERE trang_thai = 1 ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $params = [];
+        $sql = "SELECT * FROM internal_posts WHERE trang_thai = 1";
+
+        if ($search) {
+            $sql .= " AND (tieu_de LIKE ? OR noi_dung LIKE ? OR ma_hien_thi LIKE ?)";
+            $like = '%' . $search . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
         $stmt = $db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function countActive($search = null)
+    {
+        $db = self::db();
+        $params = [];
+        $sql = "SELECT COUNT(*) FROM internal_posts WHERE trang_thai = 1";
+
+        if ($search) {
+            $sql .= " AND (tieu_de LIKE ? OR noi_dung LIKE ? OR ma_hien_thi LIKE ?)";
+            $like = '%' . $search . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
     }
 
     // Get images for a post ordered by sort_order
@@ -23,82 +53,6 @@ class InternalPost extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get single post by id, include images
-    public static function getById(int $id)
-    {
-        $db = self::db();
-        $stmt = $db->prepare("SELECT * FROM internal_posts WHERE id = ? LIMIT 1");
-        $stmt->execute([(int)$id]);
-        $post = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$post) return null;
-
-        // attach images
-        try {
-            $stmt2 = $db->prepare("SELECT id, image_path, sort_order FROM internal_post_images WHERE internal_post_id = ? ORDER BY sort_order ASC, id ASC");
-            $stmt2->execute([(int)$id]);
-            $imgs = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-            $post['images'] = $imgs ?: [];
-        } catch (Exception $e) {
-            $post['images'] = [];
-        }
-
-        return $post;
-    }
-
-    public static function countActive($search = null)
-    {
-        $db = self::db();
-        $params = [];
-        $sql = "SELECT COUNT(*) FROM internal_posts WHERE trang_thai = 1";
-        if ($search) {
-            $sql .= " AND (tieu_de LIKE ? OR noi_dung LIKE ?)";
-            $like = '%' . $search . '%';
-            $params[] = $like;
-            $params[] = $like;
-        }
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        return (int)$stmt->fetchColumn();
-    }
-
-    public static function deleteById(int $id)
-    {
-        $db = self::db();
-
-        try {
-            $db->beginTransaction();
-
-            // fetch images to unlink
-            $stmt = $db->prepare("SELECT image_path FROM internal_post_images WHERE internal_post_id = ?");
-            $stmt->execute([$id]);
-            $imgs = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // delete image rows
-            $stmtDelImgs = $db->prepare("DELETE FROM internal_post_images WHERE internal_post_id = ?");
-            $stmtDelImgs->execute([$id]);
-
-            // delete post
-            $stmtDel = $db->prepare("DELETE FROM internal_posts WHERE id = ?");
-            $stmtDel->execute([$id]);
-
-            $db->commit();
-
-            // unlink files outside transaction
-            foreach ($imgs as $p) {
-                if (!$p) continue;
-                $path = __DIR__ . '/../../public/' . ltrim($p, '/');
-                if (file_exists($path) && is_file($path)) @unlink($path);
-            }
-
-            return true;
-        } catch (Exception $e) {
-            if ($db->inTransaction()) $db->rollBack();
-            $msg = date('Y-m-d H:i:s') . " - InternalPost::deleteById error: " . $e->getMessage() . "\n";
-            @file_put_contents(__DIR__ . '/../../storage/logs/internal_post_error.log', $msg, FILE_APPEND);
-            return false;
-        }
-    }
-
     // Convenience: get first image path or null
     public static function getFirstImagePath($postId)
     {
@@ -107,96 +61,95 @@ class InternalPost extends Model
         return $images[0]['image_path'] ?? null;
     }
 
-    public static function create(array $data)
+    public static function create($data)
     {
         $db = self::db();
-        $sql = "INSERT INTO internal_posts (user_id, tieu_de, noi_dung, trang_thai, ma_hien_thi, created_at, updated_at) VALUES (:user_id, :tieu_de, :noi_dung, :trang_thai, :ma_hien_thi, :created_at, :updated_at)";
-        $now = date('Y-m-d H:i:s');
-        $params = [
-            ':user_id' => $data['user_id'] ?? null,
-            ':tieu_de' => $data['tieu_de'] ?? null,
-            ':noi_dung' => $data['noi_dung'] ?? null,
-            ':trang_thai' => isset($data['trang_thai']) ? (int)$data['trang_thai'] : 1,
-            ':ma_hien_thi' => '',
-            ':created_at' => $now,
-            ':updated_at' => $now,
-        ];
+        // Tạo mã hiển thị duy nhất để tránh lỗi Duplicate entry
+        $ma_hien_thi = 'NB' . time() . rand(100, 999);
 
-        try {
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-            $id = (int)$db->lastInsertId();
+        $stmt = $db->prepare("INSERT INTO internal_posts (user_id, tieu_de, noi_dung, trang_thai, created_at, ma_hien_thi) VALUES (?, ?, ?, ?, NOW(), ?)");
+        $stmt->execute([
+            $data['user_id'],
+            $data['tieu_de'],
+            $data['noi_dung'],
+            $data['trang_thai'],
+            $ma_hien_thi
+        ]);
+        return $db->lastInsertId();
+    }
 
-            // generate ma_hien_thi like TTNB001
-            $ma = 'TTNB' . str_pad($id, 3, '0', STR_PAD_LEFT);
-            $stmt2 = $db->prepare("UPDATE internal_posts SET ma_hien_thi = :ma WHERE id = :id");
-            $stmt2->execute([':ma' => $ma, ':id' => $id]);
-
-            return $id;
-        } catch (PDOException $e) {
-            $msg = date('Y-m-d H:i:s') . " - InternalPost::create error: " . $e->getMessage() . " Params: " . json_encode($params) . "\n";
-            @file_put_contents(__DIR__ . '/../../storage/logs/internal_post_error.log', $msg, FILE_APPEND);
-            return false;
+    public static function addImages($id, $images)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("INSERT INTO internal_post_images (internal_post_id, image_path) VALUES (?, ?)");
+        foreach ($images as $path) {
+            $stmt->execute([$id, $path]);
         }
     }
 
-    public static function addImages(int $postId, array $imagePaths)
+    public static function getById($id)
     {
-        if (empty($imagePaths)) return false;
         $db = self::db();
-        $stmt = $db->prepare("INSERT INTO internal_post_images (internal_post_id, image_path, sort_order, created_at) VALUES (?, ?, ?, NOW())");
-        $order = 1;
-        foreach ($imagePaths as $p) {
-            $stmt->execute([(int)$postId, $p, $order]);
-            $order++;
+        $stmt = $db->prepare("SELECT * FROM internal_posts WHERE id = ?");
+        $stmt->execute([$id]);
+        $post = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($post) {
+            $post['images'] = self::getImages($id);
         }
-        return true;
+        return $post;
     }
 
-    public static function update(int $id, array $data)
+    public static function update($id, $data)
     {
         $db = self::db();
-        $sql = "UPDATE internal_posts SET tieu_de = :tieu_de, noi_dung = :noi_dung, trang_thai = :trang_thai, updated_at = :updated_at WHERE id = :id";
-        $params = [
-            ':tieu_de' => $data['tieu_de'] ?? null,
-            ':noi_dung' => $data['noi_dung'] ?? null,
-            ':trang_thai' => isset($data['trang_thai']) ? (int)$data['trang_thai'] : 1,
-            ':updated_at' => date('Y-m-d H:i:s'),
-            ':id' => $id
-        ];
-        try {
-            $stmt = $db->prepare($sql);
-            return $stmt->execute($params);
-        } catch (PDOException $e) {
-            $msg = date('Y-m-d H:i:s') . " - InternalPost::update error: " . $e->getMessage() . " Params: " . json_encode($params) . "\n";
-            @file_put_contents(__DIR__ . '/../../storage/logs/internal_post_error.log', $msg, FILE_APPEND);
-            return false;
-        }
+        $stmt = $db->prepare("UPDATE internal_posts SET tieu_de = ?, noi_dung = ?, trang_thai = ?, updated_at = NOW() WHERE id = ?");
+        return $stmt->execute([$data['tieu_de'], $data['noi_dung'], $data['trang_thai'], $id]);
     }
 
-    public static function deleteImageById(int $imageId)
+    public static function deleteById(int $id)
     {
         $db = self::db();
-        try {
-            // fetch path
-            $stmt = $db->prepare("SELECT image_path FROM internal_post_images WHERE id = ? LIMIT 1");
-            $stmt->execute([$imageId]);
-            $path = $stmt->fetchColumn();
-
-            // delete row
-            $stmtDel = $db->prepare("DELETE FROM internal_post_images WHERE id = ?");
-            $ok = $stmtDel->execute([$imageId]);
-
-            // unlink file if exists
-            if ($ok && $path) {
-                $fsPath = __DIR__ . '/../../public/' . ltrim($path, '/');
-                if (file_exists($fsPath) && is_file($fsPath)) @unlink($fsPath);
+        
+        // 1. Xóa hình ảnh vật lý và record trong DB
+        $images = self::getImages($id);
+        foreach ($images as $img) {
+            if (!empty($img['image_path'])) {
+                $file = __DIR__ . '/../../public/' . $img['image_path'];
+                if (file_exists($file)) {
+                    @unlink($file);
+                }
             }
-            return (bool)$ok;
-        } catch (Exception $e) {
-            $msg = date('Y-m-d H:i:s') . " - InternalPost::deleteImageById error: " . $e->getMessage() . "\n";
-            @file_put_contents(__DIR__ . '/../../storage/logs/internal_post_error.log', $msg, FILE_APPEND);
-            return false;
         }
+        
+        $stmt = $db->prepare("DELETE FROM internal_post_images WHERE internal_post_id = ?");
+        $stmt->execute([$id]);
+        
+        // Xóa thư mục chứa ảnh nếu rỗng
+        $dir = __DIR__ . '/../../public/uploads/internal/' . $id;
+        if (is_dir($dir)) {
+            @rmdir($dir);
+        }
+
+        // 2. Xóa bài viết
+        $stmt = $db->prepare("DELETE FROM internal_posts WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+
+    public static function deleteImageById($id)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT image_path FROM internal_post_images WHERE id = ?");
+        $stmt->execute([$id]);
+        $path = $stmt->fetchColumn();
+
+        if ($path) {
+            $file = __DIR__ . '/../../public/' . $path;
+            if (file_exists($file)) {
+                @unlink($file);
+            }
+        }
+
+        $stmt = $db->prepare("DELETE FROM internal_post_images WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 }

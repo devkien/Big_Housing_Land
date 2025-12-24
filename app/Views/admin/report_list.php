@@ -6,6 +6,15 @@
     <title>Báo cáo dẫn khách</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
+    <script>
+        // Mock CKEditor để tránh lỗi trong script.js vì trang này không cần bộ soạn thảo
+        window.ClassicEditor = {
+            create: function() {
+                // Trả về Promise không bao giờ resolve để script.js không làm gì tiếp theo
+                return new Promise(() => {});
+            }
+        };
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 <body>
@@ -43,16 +52,16 @@
                                     <?= date('d/m/Y', strtotime($r['created_at'])) ?>
                                 </td>
                                 <td style="padding-left: 5px; padding-right: 5px;">
-                                    <?= htmlspecialchars($r['ten_nguoi_gui'] ?? '---') ?>
+                                    <?= htmlspecialchars($r['sender_name'] ?? '---') ?>
                                 </td>
                                 <td class="text-center" style="padding-left: 5px; padding-right: 5px;">
                                     <?php 
-                                        $sdt = $r['sdt_khach'] ?? '';
+                                        $sdt = $r['customer_phone'] ?? '';
                                         echo htmlspecialchars(strlen($sdt) > 4 ? str_repeat('*', strlen($sdt) - 4) . substr($sdt, -4) : ($sdt ?: ''));
                                     ?>
                                 </td>
                                 <td class="text-right" style="padding-right: 10px; padding-left: 5px;">
-                                    <?= htmlspecialchars($r['ten_khach'] ?? '---') ?>
+                                    <?= htmlspecialchars($r['customer_name'] ?? '---') ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

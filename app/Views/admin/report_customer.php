@@ -21,10 +21,10 @@
             <div class="view-section-title">Thông tin người dẫn khách:</div>
             
             <div class="view-info-row">
-                <span class="view-info-label">Họ tên:</span> <?= htmlspecialchars($report['ten_nguoi_gui'] ?? '---') ?>
+                <span class="view-info-label">Họ tên:</span> <?= htmlspecialchars($report['sender_name'] ?? '---') ?>
             </div>
             <div class="view-info-row">
-                <span class="view-info-label">SĐT:</span> <?= htmlspecialchars($report['sdt_nguoi_gui'] ?? '---') ?>
+                <span class="view-info-label">SĐT:</span> <?= htmlspecialchars($report['sender_phone'] ?? '---') ?>
             </div>
             <div class="view-info-row">
                 <span class="view-info-label">Thời gian gửi tin:</span> <?= isset($report['created_at']) ? date('d/m/Y H:i', strtotime($report['created_at'])) : '---' ?>
@@ -36,22 +36,22 @@
             <div class="view-section-title" style="margin-top: 30px;">Thông tin khách:</div>
             
             <div class="view-info-row">
-                <span class="view-info-label">Họ tên:</span> <?= htmlspecialchars($report['ten_khach'] ?? '---') ?>
+                <span class="view-info-label">Họ tên:</span> <?= htmlspecialchars($report['ho_ten'] ?? '---') ?>
             </div>
             <div class="view-info-row">
                 <span class="view-info-label">SĐT:</span> 
                 <?php 
-                    $sdt = $report['sdt_khach'] ?? '';
+                    $sdt = $report['so_dien_thoai'] ?? '';
                     echo htmlspecialchars(strlen($sdt) > 4 ? str_repeat('*', strlen($sdt) - 4) . substr($sdt, -4) : ($sdt ?: '---'));
                 ?>
             </div>
             <div class="view-info-row">
-                <span class="view-info-label">Năm sinh:</span> <?= htmlspecialchars($report['nam_sinh_khach'] ?? '---') ?>
+                <span class="view-info-label">Năm sinh:</span> <?= htmlspecialchars($report['nam_sinh'] ?? '---') ?>
             </div>
             <div class="view-info-row">
                 <span class="view-info-label">CCCD:</span> 
                 <?php 
-                    $cccd = $report['cccd_khach'] ?? '';
+                    $cccd = $report['cccd'] ?? '';
                     echo htmlspecialchars(strlen($cccd) > 4 ? str_repeat('*', strlen($cccd) - 4) . substr($cccd, -4) : ($cccd ?: '---'));
                 ?>
             </div>
@@ -61,8 +61,8 @@
             </div>
             
             <div class="view-image-grid">
-                <?php if (!empty($report['images'])): ?>
-                    <?php foreach ($report['images'] as $imagePath): ?>
+                <?php if (!empty($report['customer_images'])): ?>
+                    <?php foreach ($report['customer_images'] as $imagePath): ?>
                         <div class="view-image-item" style="background-image: url('<?= BASE_URL ?>/<?= htmlspecialchars($imagePath) ?>');"></div>
                     <?php endforeach; ?>
                 <?php else: ?>
