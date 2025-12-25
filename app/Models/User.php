@@ -202,6 +202,9 @@ class User extends Model
         // Derive loai_tai_khoan if not explicitly provided (keep compatibility)
         $loai = $data['loai_tai_khoan'] ?? ((($data['quyen'] ?? '') === 'admin') ? 'admin' : 'nhan_vien');
 
+        // Đảm bảo trạng thái là số nguyên (0, 1, 2)
+        $trangThai = isset($data['trang_thai']) ? (int)$data['trang_thai'] : 0;
+
         return $stmt->execute([
             $data['ma_nhan_su'] ?? null,
             $data['so_dien_thoai'] ?? null,
@@ -214,7 +217,7 @@ class User extends Model
             $data['link_fb'] ?? null,
             $data['ma_gioi_thieu'] ?? null,
             $data['anh_cccd'] ?? null,
-            isset($data['trang_thai']) ? (int)$data['trang_thai'] : 0,
+            $trangThai,
             $data['quyen'] ?? 'user',
             $loai,
             $id
@@ -243,8 +246,9 @@ class User extends Model
                 ma_gioi_thieu,
                 anh_cccd,
                 trang_thai,
+                vi_tri,
                 created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
 
         $loai = $data['loai_tai_khoan'] ?? ((($data['quyen'] ?? '') === 'admin') ? 'admin' : 'nhan_vien');
@@ -266,6 +270,7 @@ class User extends Model
             $data['ma_gioi_thieu'] ?? null,
             $data['anh_cccd'] ?? null,
             $data['trang_thai'] ?? 1,
+            $data['vi_tri'] ?? null,
         ]);
     }
 }

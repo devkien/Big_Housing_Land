@@ -33,7 +33,7 @@
     </div>
     <div class="menu-item" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-owner'">
         <div class="icon-box"><img src="<?= BASE_URL ?>/icon/Group (2).png" alt=""></div>
-        <span>Danh sách<br>CTV</span>
+        <span>Danh sách<br>nhân sự </span>
     </div>
 
 </div>

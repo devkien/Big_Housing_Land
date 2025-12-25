@@ -371,34 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!paginationContainer) {
             paginationContainer = document.querySelector('.pagination-container');
         }
-        // compute rows per page dynamically so the table fills available vertical space
-        function computeRowsPerPage() {
-            // measure available vertical space from table top to window bottom
-            const tableTop = resourceTable.getBoundingClientRect().top;
-            const winH = window.innerHeight || document.documentElement.clientHeight;
-
-            const paginationH = paginationContainer ? paginationContainer.offsetHeight || 40 : 40;
-            const header = document.querySelector('.resource-header');
-            const headerH = header ? header.offsetHeight : 60;
-            const toolbar = document.querySelector('.toolbar-section');
-            const toolbarH = toolbar ? toolbar.offsetHeight : 40;
-            const bottomNav = document.getElementById('bottom-nav-container');
-            const bottomNavH = bottomNav ? bottomNav.offsetHeight : 60;
-
-            // some breathing room
-            let available = winH - tableTop - paginationH - headerH - toolbarH - bottomNavH - 24;
-            if (available < 80) available = 80;
-
-            // measure a row height (fallback to 48)
-            const firstRow = tbody.querySelector('tr');
-            const rowH = firstRow ? firstRow.getBoundingClientRect().height : 48;
-            let count = Math.floor(available / rowH);
-            if (count < 1) count = 1;
-            if (count > 50) count = 50;
-            return count;
-        }
-
-        let rowsPerPage = computeRowsPerPage();
+        const rowsPerPage = 10;
         let currentPage = 1;
 
         // Recompute rowsPerPage on resize/orientation change and refresh pagination

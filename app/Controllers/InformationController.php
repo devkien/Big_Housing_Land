@@ -348,4 +348,42 @@ class InformationController extends Controller
 
         $this->view('superadmin/internal-info-edit', ['post' => $post]);
     }
+
+    public function createNotification()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/../Helpers/functions.php';
+            if (!verify_csrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Token không hợp lệ.';
+                header('Location: ' . BASE_URL . '/superadmin/cre-notification');
+                exit;
+            }
+
+            $ma_nhan_su = trim($_POST['ma_nhan_su'] ?? '');
+            $noi_dung = trim($_POST['noi_dung'] ?? '');
+
+            if (empty($ma_nhan_su) || empty($noi_dung)) {
+                $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
+                header('Location: ' . BASE_URL . '/superadmin/cre-notification');
+                exit;
+            }
+
+            require_once __DIR__ . '/../Models/User.php';
+            $user = User::findByMaNhanSu($ma_nhan_su);
+
+            if (!$user) {
+                $_SESSION['error'] = 'Mã nhân viên không tồn tại trong hệ thống.';
+                header('Location: ' . BASE_URL . '/superadmin/cre-notification');
+                exit;
+            }
+
+            // Logic lưu thông báo vào database sẽ được thêm ở đây
+            
+            $_SESSION['success'] = 'Đăng thông báo vụ chốt thành công.';
+            header('Location: ' . BASE_URL . '/superadmin/cre-notification');
+            exit;
+        }
+
+        $this->view('superadmin/cre-notification');
+    }
 }

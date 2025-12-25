@@ -15,7 +15,7 @@
     <div class="app-container" style="background: white;">
 
         <header class="detail-header">
-            <a href="<?= BASE_URL ?>/superadmin/profile" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="<?= BASE_URL ?>/admin/profile" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="detail-title">Chính sách Cookie</div>
             <div style="width: 20px;"></div>
         </header>
