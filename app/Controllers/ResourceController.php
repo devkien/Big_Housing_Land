@@ -11,7 +11,6 @@ class ResourceController extends Controller
 
     public function resourcePost()
     {
-        // If POST: handle form submission
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../Helpers/functions.php';
             if (!verify_csrf($_POST['_csrf'] ?? null)) {
@@ -26,8 +25,6 @@ class ResourceController extends Controller
             $sessionUser = \Auth::user();
             $userId = $sessionUser['id'] ?? null;
 
-            // ----- Server-side mapping & validation -----
-            // Allowed enums / values (map client inputs to canonical DB values)
             $allowed = [
                 'loai_bds' => ['ban', 'cho_thue'],
                 'phap_ly' => ['co_so', 'khong_so'],
@@ -366,7 +363,6 @@ class ResourceController extends Controller
         ]);
     }
 
-    // AJAX: save property into selected collections
     public function saveToCollections()
     {
         // Accept JSON body OR standard form POST (fallback)
@@ -414,9 +410,9 @@ class ResourceController extends Controller
 
         require_once __DIR__ . '/../Models/Collection.php';
 
-        // For superadmin flow, allow adding into any collection ids provided by the client.
-        // Use the compatibility wrapper added to Collection::addItems which simply inserts records.
-        $added = Collection::addItems($collections, $propertyId, $resourceType);
+        // For superadmin flow, sync the resource's collections so that after
+        // saving it belongs ONLY to the selected collections (remove old links).
+        $added = Collection::syncItems($collections, $propertyId, $resourceType);
         @file_put_contents($logPath, date('Y-m-d H:i:s') . " - addItems result: " . json_encode($added) . "\n", FILE_APPEND);
 
         if ($added === false) {

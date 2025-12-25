@@ -4,34 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho tài nguyên</title>
+    <title>Chi tiết bộ sưu tập</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../Public/Css/style.css">
     <script src="../Public/Js/script.js"></script>
-    <?php require_once __DIR__ . '/../../Helpers/functions.php'; ?>
-    <meta name="csrf-token" content="<?= csrf_token() ?>">
-    <script>
-        window.BASE_PATH = '<?= BASE_PATH ?>';
-    </script>
 </head>
 
 <body>
     <div class="app-container" style="background: white;">
 
         <header class="resource-header">
-            <a href="<?= BASE_URL ?>/superadmin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
-            <div class="resource-title">Kho tài nguyên</div>
+            <a href="<?= BASE_URL ?>/superadmin/collection" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <div class="resource-title"><?php echo htmlspecialchars($collection['ten_bo_suu_tap'] ?? 'Chi tiết bộ sưu tập'); ?> <?php echo ' (' . (int)(count($items ?? [])) . ' tin)'; ?></div>
             <div class="header-icon-btn"></div>
         </header>
 
-        <div class="tabs-container">
-            <button class="tab-btn active">Kho nhà đất</button>
-
-            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-rent'">Kho nhà cho thuê</button>
-        </div>
-
         <div class="toolbar-section">
             <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
+            <button class="tool-btn" id="btn-search"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
             <div style="flex:1;"></div>
         </div>
         <div class="table-wrapper" style="margin-bottom: 0;">
@@ -68,13 +58,14 @@
                         'tang_chao' => 'Tăng chào',
                         'ha_chao' => 'Hạ chào'
                     ];
-                    if (empty($properties)) :
+
+                    if (empty($items)) :
                     ?>
                         <tr>
-                            <td colspan="18" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
+                            <td colspan="6" style="text-align:center; padding:20px;">Không có tài nguyên nào trong bộ sưu tập này.</td>
                         </tr>
                         <?php else :
-                        foreach ($properties as $p) :
+                        foreach ($items as $p) :
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
                             $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
@@ -87,7 +78,7 @@
                             }
                         ?>
                             <?php
-                            // friendly labels / formatting
+                            // friendly labels / formatting (same as resource.php)
                             $phong_ban = htmlspecialchars($p['phong_ban'] ?? '');
                             $tieu_de = htmlspecialchars($p['tieu_de'] ?? '');
                             $loai_bds_map = ['ban' => 'Bán', 'cho_thue' => 'Cho thuê'];
@@ -104,11 +95,12 @@
                             $so_tang = isset($p['so_tang']) && $p['so_tang'] !== null ? (int)$p['so_tang'] : null;
                             $gia_chao = isset($p['gia_chao']) && $p['gia_chao'] !== null ? (float)$p['gia_chao'] : null;
                             $gia_chao_fmt = $gia_chao !== null ? number_format($gia_chao, 0, ',', '.') . ' VND' : '';
+                            $statusKey = htmlspecialchars($p['trang_thai'] ?? '');
+                            $ci_id = isset($p['ci_id']) ? (int)$p['ci_id'] : 0;
                             ?>
                             <tr data-id="<?= htmlspecialchars($p['id']) ?>">
-                                <?php $inCount = isset($collectionMap[(int)$p['id']]) ? (int)$collectionMap[(int)$p['id']] : 0; ?>
                                 <td style="padding-left:15px;">
-                                    <i class="<?= $inCount > 0 ? 'fa-solid' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i>
+                                    <i class="fa-solid fa-bookmark icon-save saved" data-ci="<?= $ci_id ?>" data-resource-id="<?= (int)$p['id'] ?>" data-resource-type="bat_dong_san" title="Bỏ khỏi bộ sưu tập" style="color:#ffcc00; cursor:pointer;"></i>
                                 </td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td style="cursor:pointer; color:#0b66ff;" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
@@ -125,7 +117,6 @@
                                 <td><?= $chieu_rong !== null ? rtrim(rtrim(number_format($chieu_rong, 2, ',', '.'), '0'), ',') : '' ?></td>
                                 <td><?= $so_tang !== null ? (int)$so_tang : '' ?></td>
                                 <td style="text-align:right; padding-right:15px;"><?= htmlspecialchars($gia_chao_fmt) ?></td>
-                                <?php $statusKey = htmlspecialchars($p['trang_thai'] ?? ''); ?>
                                 <td><span class="status-badge strong <?= $statusKey ? 'status-badge--' . $statusKey : '' ?>"><?= htmlspecialchars($status) ?></span></td>
                                 <td style="text-align:right; padding-right:15px;"><?= $address ?></td>
                             </tr>
@@ -133,6 +124,7 @@
                         endforeach;
                     endif;
                     ?>
+
                 </tbody>
             </table>
         </div>
@@ -148,18 +140,18 @@
                 <div class="filter-group">
                     <label class="filter-label">Hiện trạng</label>
                     <select id="filter-status" class="filter-select">
-                        <option value="all" <?= (empty($status) || $status === 'all') ? 'selected' : '' ?>>Tất cả</option>
-                        <option value="ban_manh" <?= (isset($status) && $status === 'ban_manh') ? 'selected' : '' ?>>Bán mạnh</option>
-                        <option value="tam_dung_ban" <?= (isset($status) && $status === 'tam_dung_ban') ? 'selected' : '' ?>>Tạm dừng bán</option>
-                        <option value="dung_ban" <?= (isset($status) && $status === 'dung_ban') ? 'selected' : '' ?>>Dừng bán</option>
-                        <option value="da_ban" <?= (isset($status) && $status === 'da_ban') ? 'selected' : '' ?>>Đã bán</option>
-                        <option value="tang_chao" <?= (isset($status) && $status === 'tang_chao') ? 'selected' : '' ?>>Tăng chào</option>
-                        <option value="ha_chao" <?= (isset($status) && $status === 'ha_chao') ? 'selected' : '' ?>>Hạ chào</option>
+                        <option value="all">Tất cả</option>
+                        <option value="ban_manh">Bán mạnh</option>
+                        <option value="tam_dung_ban">Tạm dừng bán</option>
+                        <option value="dung_ban">Dừng bán</option>
+                        <option value="da_ban">Đã bán</option>
+                        <option value="tang_chao">Tăng chào</option>
+                        <option value="ha_chao">Hạ chào</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label class="filter-label">Mã tin / Địa chỉ</label>
-                    <input type="text" id="filter-address" class="filter-input" placeholder="Nhập mã tin (VD: 1277)..." value="<?= htmlspecialchars($address ?? '') ?>">
+                    <input type="text" id="filter-address" class="filter-input" placeholder="Nhập mã tin (VD: 1277)...">
                 </div>
                 <div class="modal-actions">
                     <button id="close-filter" class="btn-cancel">Hủy</button>
@@ -187,16 +179,18 @@
 
                 <div class="filter-group">
                     <div class="collection-list-select" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
-                        <?php if (!empty($collections)) : ?>
-                            <?php foreach ($collections as $c) : ?>
-                                <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                                    <input type="checkbox" name="collection[]" value="<?= (int)$c['id'] ?>" style="margin-right: 10px;">
-                                    <span style="font-size: 14px; color: #000;"><?= htmlspecialchars($c['ten_bo_suu_tap'] ?? '') ?><?php if (isset($c['item_count'])) echo ' (' . (int)$c['item_count'] . ')'; ?></span>
-                                </label>
-                            <?php endforeach; ?>
-                        <?php else : ?>
-                            <div style="padding:10px; color:#666">Chưa có bộ sưu tập nào.</div>
-                        <?php endif; ?>
+                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
+                            <input type="checkbox" name="collection" value="1" style="margin-right: 10px;">
+                            <span style="font-size: 14px; color: #000;">Khách hàng tiềm năng</span>
+                        </label>
+                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
+                            <input type="checkbox" name="collection" value="2" style="margin-right: 10px;">
+                            <span style="font-size: 14px; color: #000;">Nhà đất Hà Đông</span>
+                        </label>
+                        <label class="collection-option" style="display: flex; align-items: center; padding: 10px; cursor: pointer;">
+                            <input type="checkbox" name="collection" value="3" style="margin-right: 10px;">
+                            <span style="font-size: 14px; color: #000;">Dự án mới</span>
+                        </label>
                     </div>
                 </div>
 
@@ -222,6 +216,7 @@
                         <option value="Hạ chào">Hạ chào</option>
                     </select>
                 </div>
+
                 <div class="modal-actions">
                     <button id="close-status-modal" class="btn-cancel">Hủy</button>
                     <button id="save-status-btn" class="btn-apply">Lưu</button>
@@ -231,104 +226,140 @@
         <div id="bottom-nav-container">
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
-    </div>
-    <script>
-        (function() {
-            window.CURRENT_RESOURCE_TYPE = 'kho_nha_dat';
 
-            function qs(sel, ctx) {
-                return (ctx || document).querySelector(sel);
-            }
+        <?php require_once __DIR__ . '/../partials/modals.php'; ?>
 
-            function qsa(sel, ctx) {
-                return Array.prototype.slice.call((ctx || document).querySelectorAll(sel));
-            }
-            var modal = qs('#save-collection-modal');
-            if (!modal) return;
-            modal.style.display = 'none';
-            var closeBtn = qs('#close-save-collection');
-            var confirmBtn = qs('#confirm-save-collection');
-            var currentPropertyId = null;
-
-            qsa('.icon-save').forEach(function(el) {
-                el.addEventListener('click', function(ev) {
-                    ev.stopPropagation();
-                    var tr = el.closest('tr');
-                    currentPropertyId = tr ? tr.getAttribute('data-id') : null;
-                    // reset checkboxes
-                    qsa('#save-collection-modal input[type=checkbox]').forEach(function(cb) {
-                        cb.checked = false;
-                    });
-                    if (modal) modal.setAttribute('data-property-id', currentPropertyId || '');
-                    modal.style.display = 'block';
-                });
-            });
-
-            if (closeBtn) closeBtn.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-            // clicking outside modal-content closes it
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) modal.style.display = 'none';
-            });
-
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function() {
-                    var selected = qsa('#save-collection-modal input[type=checkbox]:checked').map(function(cb) {
-                        return cb.value;
-                    });
-                    if (!currentPropertyId) return window.showAlert('warning', 'Không xác định tài nguyên');
-                    if (selected.length === 0) return window.showAlert('warning', 'Vui lòng chọn ít nhất một bộ sưu tập');
-
-                    var payload = {
-                        property_id: parseInt(currentPropertyId, 10),
-                        collections: selected.map(function(v) {
-                            return parseInt(v, 10);
-                        }),
-                        _csrf: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        <script>
+            (function() {
+                var currentRemove = null;
+                // Open delete modal when clicking saved icon
+                document.body.addEventListener('click', function(e) {
+                    var btn = e.target.closest && e.target.closest('.icon-save.saved');
+                    if (!btn) return;
+                    e.stopPropagation();
+                    var ci = btn.getAttribute('data-ci');
+                    var rid = btn.getAttribute('data-resource-id');
+                    var rtype = btn.getAttribute('data-resource-type') || 'bat_dong_san';
+                    currentRemove = {
+                        ci: ci,
+                        resource_id: rid,
+                        resource_type: rtype
                     };
 
-                    fetch(window.BASE_PATH + '/superadmin/save-to-collections', {
+                    // set modal message
+                    var msg = document.getElementById('delete-modal-message');
+                    if (msg) msg.innerText = 'Bạn có chắc chắn muốn xóa mục này khỏi bộ sưu tập?';
+
+                    // show modal
+                    var delModal = document.getElementById('delete-modal');
+                    if (delModal) delModal.style.display = 'flex';
+                });
+
+                // Filter / Search modal open handlers
+                document.getElementById('btn-filter')?.addEventListener('click', function() {
+                    // prefill from query params if available
+                    var params = new URLSearchParams(window.location.search);
+                    var status = params.get('status') || 'all';
+                    var address = params.get('address') || '';
+                    document.getElementById('filter-status').value = status;
+                    document.getElementById('filter-address').value = address;
+                    document.getElementById('filter-modal').style.display = 'flex';
+                });
+                document.getElementById('btn-search')?.addEventListener('click', function() {
+                    var params = new URLSearchParams(window.location.search);
+                    var q = params.get('q') || '';
+                    document.getElementById('search-input').value = q;
+                    document.getElementById('search-modal').style.display = 'flex';
+                });
+
+                document.getElementById('close-filter')?.addEventListener('click', function() {
+                    document.getElementById('filter-modal').style.display = 'none';
+                });
+                document.getElementById('close-search')?.addEventListener('click', function() {
+                    document.getElementById('search-modal').style.display = 'none';
+                });
+
+                // Apply filter: build GET url and reload
+                document.getElementById('apply-filter')?.addEventListener('click', function() {
+                    var status = document.getElementById('filter-status').value || 'all';
+                    var address = document.getElementById('filter-address').value || '';
+                    var params = new URLSearchParams(window.location.search);
+                    params.set('id', <?= (int)($collection['id'] ?? 0) ?>);
+                    if (status && status !== 'all') params.set('status', status);
+                    else params.delete('status');
+                    if (address) params.set('address', address);
+                    else params.delete('address');
+                    params.delete('page');
+                    window.location.href = window.location.pathname + '?' + params.toString();
+                });
+
+                // Apply search
+                document.getElementById('apply-search')?.addEventListener('click', function() {
+                    var q = document.getElementById('search-input').value || '';
+                    var params = new URLSearchParams(window.location.search);
+                    params.set('id', <?= (int)($collection['id'] ?? 0) ?>);
+                    if (q) params.set('q', q);
+                    else params.delete('q');
+                    params.delete('page');
+                    window.location.href = window.location.pathname + '?' + params.toString();
+                });
+
+                // Cancel
+                document.getElementById('cancel-delete-btn')?.addEventListener('click', function() {
+                    document.getElementById('delete-modal').style.display = 'none';
+                    currentRemove = null;
+                });
+
+                // Confirm delete
+                document.getElementById('confirm-delete-btn')?.addEventListener('click', function() {
+                    if (!currentRemove) return;
+                    var btn = this;
+                    btn.disabled = true;
+                    var fd = new FormData();
+                    fd.append('collection_id', <?= (int)($collection['id'] ?? 0) ?>);
+                    fd.append('resource_id', currentRemove.resource_id);
+                    fd.append('resource_type', currentRemove.resource_type);
+
+                    fetch('<?= BASE_URL ?>/superadmin/collection-remove-item', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload),
-                        credentials: 'same-origin'
-                    }).then(function(res) {
-                        return res.json();
-                    }).then(function(json) {
-                        if (json.ok) {
-                            // update counts in modal UI
-                            selected.forEach(function(cid) {
-                                var cb = qs('#save-collection-modal input[value="' + cid + '"]');
-                                if (cb) {
-                                    var span = cb.nextElementSibling;
-                                    if (span) {
-                                        var m = span.textContent.match(/\((\d+)\)$/);
-                                        if (m) {
-                                            var n = parseInt(m[1], 10) + 1;
-                                            span.textContent = span.textContent.replace(/\(\d+\)$/, '(' + n + ')');
-                                        } else {
-                                            span.textContent = span.textContent + ' (1)';
-                                        }
-                                    }
-                                }
-                            });
-                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công.');
+                        credentials: 'same-origin',
+                        body: fd
+                    }).then(r => r.json()).then(function(json) {
+                        btn.disabled = false;
+                        document.getElementById('delete-modal').style.display = 'none';
+                        if (json && json.ok) {
+                            // remove table row containing the icon
+                            var icon = document.querySelector('.icon-save.saved[data-resource-id="' + currentRemove.resource_id + '"]');
+                            if (icon) {
+                                var row = icon.closest('tr');
+                                if (row) row.remove();
+                            }
+                            // show success modal
+                            var sTitle = document.getElementById('success-modal-title');
+                            var sMsg = document.getElementById('success-modal-message');
+                            if (sTitle) sTitle.innerText = 'Đã xóa';
+                            if (sMsg) sMsg.innerText = 'Mục đã được xóa khỏi bộ sưu tập.';
+                            document.getElementById('success-modal').style.display = 'flex';
                         } else {
-                            window.showAlert('error', 'Lỗi: ' + (json.message || 'Không xác định'));
+                            alert('Không thể xóa, vui lòng thử lại.');
                         }
-                        modal.style.display = 'none';
-                    }).catch(function(err) {
-                        console.error(err);
-                        window.showAlert('error', 'Lỗi khi kết nối server');
-                        modal.style.display = 'none';
+                        currentRemove = null;
+                    }).catch(function() {
+                        btn.disabled = false;
+                        document.getElementById('delete-modal').style.display = 'none';
+                        alert('Lỗi mạng');
+                        currentRemove = null;
                     });
                 });
-            }
-        });
-    </script>
+
+                // Close success
+                document.getElementById('success-ok-btn')?.addEventListener('click', function() {
+                    document.getElementById('success-modal').style.display = 'none';
+                });
+            })();
+        </script>
+    </div>
+    </div>
 </body>
 
 </html>

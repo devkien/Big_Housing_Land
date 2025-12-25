@@ -86,28 +86,23 @@
 /* ===== ALERT TYPES ===== */
 
 .alert--success {
-    background: linear-gradient(90deg,
-            rgba(22, 163, 74, 0.06),
-            rgba(255, 255, 255, 0));
-    background-color: red;
+    background: linear-gradient(90deg, rgba(22, 163, 74, 0.06), rgba(255, 255, 255, 0));
+    border-left: 4px solid #16A34A;
 }
 
 .alert--error {
-    background: linear-gradient(90deg,
-            rgba(220, 38, 38, 0.06),
-            rgba(255, 255, 255, 0));
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.06), rgba(255, 255, 255, 0));
+    border-left: 4px solid #DC2626;
 }
 
 .alert--warning {
-    background: linear-gradient(90deg,
-            rgba(217, 119, 6, 0.06),
-            rgba(255, 255, 255, 0));
+    background: linear-gradient(90deg, rgba(217, 119, 6, 0.06), rgba(255, 255, 255, 0));
+    border-left: 4px solid #D97706;
 }
 
 .alert--info {
-    background: linear-gradient(90deg,
-            rgba(37, 99, 235, 0.06),
-            rgba(255, 255, 255, 0));
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.06), rgba(255, 255, 255, 0));
+    border-left: 4px solid #2563EB;
 }
 
 /* Icon colors */

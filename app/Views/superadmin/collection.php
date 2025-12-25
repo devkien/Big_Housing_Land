@@ -114,6 +114,13 @@
                     currentId = card.getAttribute('data-id');
                     if (collectionModal) collectionModal.style.display = 'flex';
                 }
+
+                // Click on card (not on dots) -> open collection detail
+                const cardClick = e.target.closest && e.target.closest('.collection-card');
+                if (cardClick && !e.target.closest('.btn-more-dots')) {
+                    const cid = cardClick.getAttribute('data-id');
+                    if (cid) window.location.href = '<?= BASE_URL ?>/superadmin/collection-detail?id=' + encodeURIComponent(cid);
+                }
             });
 
             if (btnEdit) btnEdit.addEventListener('click', function() {

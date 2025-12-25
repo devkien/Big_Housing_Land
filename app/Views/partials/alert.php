@@ -26,11 +26,13 @@ if ($hasAny):
             $message = $_SESSION[$type];
             unset($_SESSION[$type]);
 ?>
-            <div class="alert alert--<?= htmlspecialchars($type) ?>" role="alert" aria-live="polite">
-                <div class="alert-inner">
-                    <i class="fa <?= $icons[$type] ?? 'fa-info-circle' ?> alert-icon" aria-hidden="true"></i>
-                    <div class="alert-message"><?= htmlspecialchars($message) ?></div>
-                    <button type="button" class="alert-close" aria-label="Đóng thông báo" onclick="this.closest('.alert').style.display='none'">&times;</button>
+            <div class="alert-wrapper">
+                <div class="alert alert--<?= htmlspecialchars($type) ?>" role="alert" aria-live="polite">
+                    <div class="alert-inner">
+                        <i class="fa <?= $icons[$type] ?? 'fa-info-circle' ?> alert-icon" aria-hidden="true"></i>
+                        <div class="alert-message"><?= htmlspecialchars($message) ?></div>
+                        <button type="button" class="alert-close" aria-label="Đóng thông báo" onclick="this.closest('.alert-wrapper').style.display='none'">&times;</button>
+                    </div>
                 </div>
             </div>
 <?php

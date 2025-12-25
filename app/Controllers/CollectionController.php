@@ -22,6 +22,40 @@ class CollectionController extends Controller
         ]);
     }
 
+    public function collectionDetail()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../Models/Property.php';
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID bộ sưu tập không hợp lệ.';
+            header('Location: ' . BASE_URL . '/superadmin/collection');
+            exit;
+        }
+
+        $collection = Collection::getById($id);
+        if (!$collection) {
+            $_SESSION['error'] = 'Không tìm thấy bộ sưu tập.';
+            header('Location: ' . BASE_URL . '/superadmin/collection');
+            exit;
+        }
+
+        // Read optional filters from query string
+        $filters = [];
+        if (isset($_GET['q']) && trim($_GET['q']) !== '') $filters['q'] = trim($_GET['q']);
+        if (isset($_GET['status']) && trim($_GET['status']) !== '' && trim($_GET['status']) !== 'all') $filters['status'] = trim($_GET['status']);
+        if (isset($_GET['address']) && trim($_GET['address']) !== '') $filters['address'] = trim($_GET['address']);
+
+        $items = Collection::getItems($id, 'bat_dong_san', $filters);
+
+        $this->view('superadmin/collection-detail', [
+            'collection' => $collection,
+            'items' => $items,
+            'filters' => $filters
+        ]);
+    }
+
     public function creCollection()
     {
         // Handle POST (form submit)
@@ -119,6 +153,39 @@ class CollectionController extends Controller
         }
 
         $ok = Collection::deleteById($id);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => (bool)$ok]);
+    }
+
+    // AJAX: remove single item from collection
+    public function removeItem()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json', true, 405);
+            echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+
+        $collectionId = isset($_POST['collection_id']) ? (int)$_POST['collection_id'] : 0;
+        $resourceId = isset($_POST['resource_id']) ? (int)$_POST['resource_id'] : 0;
+        $resourceType = $_POST['resource_type'] ?? 'bat_dong_san';
+
+        if ($collectionId <= 0 || $resourceId <= 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'error' => 'Invalid params']);
+            return;
+        }
+
+        // Allow super_admin to remove items from any collection
+        $force = false;
+        if (isset($user['quyen']) && $user['quyen'] === 'super_admin') $force = true;
+        $ok = Collection::removeItem($collectionId, $resourceId, $userId, $resourceType, $force);
         header('Content-Type: application/json');
         echo json_encode(['ok' => (bool)$ok]);
     }

@@ -169,6 +169,68 @@ class Collection extends Model
         }
     }
 
+    // Get a single collection record by id
+    public static function getById(int $id)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT * FROM collections WHERE id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    // Get items belonging to a collection. Currently supports resource_type 'bat_dong_san' which maps to `properties` table.
+    public static function getItems(int $collectionId, string $resourceType = 'bat_dong_san', array $filters = [])
+    {
+        $db = self::db();
+        if ($resourceType === 'bat_dong_san') {
+            $sql = "SELECT p.* , ci.created_at AS saved_at, ci.id AS ci_id
+                    FROM collection_items ci
+                    JOIN properties p ON p.id = ci.resource_id
+                    WHERE ci.collection_id = ? AND ci.resource_type = ?";
+
+            $params = [(int)$collectionId, $resourceType];
+
+            // Apply filters
+            if (!empty($filters['status'])) {
+                $sql .= " AND p.trang_thai = ?";
+                $params[] = $filters['status'];
+            }
+
+            if (!empty($filters['address'])) {
+                $sql .= " AND (p.dia_chi_chi_tiet LIKE ? OR p.tinh_thanh LIKE ? OR p.quan_huyen LIKE ? OR p.xa_phuong LIKE ? )";
+                $like = '%' . $filters['address'] . '%';
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+            }
+
+            if (!empty($filters['q'])) {
+                $sql .= " AND (p.ma_hien_thi LIKE ? OR p.tieu_de LIKE ? OR p.dia_chi_chi_tiet LIKE ? OR p.mo_ta LIKE ?)";
+                $like = '%' . $filters['q'] . '%';
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+            }
+
+            $sql .= " ORDER BY ci.created_at DESC";
+            $stmt = $db->prepare($sql);
+            try {
+                $stmt->execute($params);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                $msg = date('Y-m-d H:i:s') . " - Collection::getItems error: " . $e->getMessage() . " SQL: " . $sql . " Params: " . json_encode($params) . "\n";
+                @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
+                return [];
+            }
+        }
+
+        // Fallback: return empty array for unsupported resource types
+        return [];
+    }
+
     // Backwards-compatible helper used by some tests/scripts: addItems(collectionIds, propertyId, resourceType)
     public static function addItems(array $collectionIds, int $propertyId, $resourceType = null)
     {
@@ -208,6 +270,72 @@ class Collection extends Model
             return $inserted;
         } catch (Exception $e) {
             $db->rollBack();
+            return false;
+        }
+    }
+
+    // Sync associations for a resource across collections.
+    // After this call, the resource will belong ONLY to the provided $collectionIds
+    // (for the given resource_type). Returns number of inserted rows on success, or
+    // false on error.
+    public static function syncItems(array $collectionIds, int $propertyId, string $resourceType = 'bat_dong_san')
+    {
+        $db = self::db();
+        try {
+            $db->beginTransaction();
+
+            // 1) Delete any existing links for this resource and resource_type
+            //    that are NOT in the new set of collection IDs. If the new set
+            //    is empty, delete all links for this resource/resource_type.
+            if (!empty($collectionIds)) {
+                $placeholders = implode(',', array_fill(0, count($collectionIds), '?'));
+                $delSql = "DELETE FROM collection_items WHERE resource_id = ? AND resource_type = ? AND collection_id NOT IN ($placeholders)";
+                $delParams = array_merge([$propertyId, $resourceType], $collectionIds);
+            } else {
+                $delSql = "DELETE FROM collection_items WHERE resource_id = ? AND resource_type = ?";
+                $delParams = [$propertyId, $resourceType];
+            }
+            $delStmt = $db->prepare($delSql);
+            $delStmt->execute($delParams);
+
+            // 2) Insert new links for collections in the provided list if they don't exist.
+            $inserted = 0;
+            if (!empty($collectionIds)) {
+                // Use a safe INSERT ... SELECT ... WHERE NOT EXISTS pattern to avoid duplicates
+                $insSql = "INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at)
+                           SELECT ?, ?, ?, NOW() WHERE NOT EXISTS (SELECT 1 FROM collection_items WHERE collection_id = ? AND resource_id = ? AND resource_type = ? )";
+                $insStmt = $db->prepare($insSql);
+                foreach ($collectionIds as $cid) {
+                    $params = [(int)$cid, $propertyId, $resourceType, (int)$cid, $propertyId, $resourceType];
+                    $insStmt->execute($params);
+                    $inserted += $insStmt->rowCount();
+                }
+            }
+
+            $db->commit();
+            return $inserted;
+        } catch (Exception $e) {
+            $db->rollBack();
+            return false;
+        }
+    }
+
+    // Remove a single resource from a collection, validating that the collection belongs to the user
+    public static function removeItem(int $collectionId, int $resourceId, int $userId, string $resourceType = 'bat_dong_san', bool $force = false)
+    {
+        $db = self::db();
+        try {
+            // Ensure the collection belongs to the user, unless forced (e.g., super_admin)
+            if (!$force) {
+                $stmt = $db->prepare("SELECT id FROM collections WHERE id = ? AND user_id = ? LIMIT 1");
+                $stmt->execute([$collectionId, $userId]);
+                $exists = $stmt->fetchColumn();
+                if (!$exists) return false;
+            }
+
+            $del = $db->prepare("DELETE FROM collection_items WHERE collection_id = ? AND resource_id = ? AND resource_type = ?");
+            return (bool)$del->execute([$collectionId, $resourceId, $resourceType]);
+        } catch (Exception $e) {
             return false;
         }
     }
