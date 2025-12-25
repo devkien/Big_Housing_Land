@@ -441,7 +441,7 @@ class AdminController extends Controller
 
     public function resourceSum()
     {
-         // list kho_nha_dat
+        // list kho_nha_dat
         require_once __DIR__ . '/../Models/Property.php';
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
