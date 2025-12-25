@@ -96,21 +96,35 @@ class NotificationController extends Controller
             }
 
             if (empty($errors)) {
-                $data = [
-                    'user_id' => $userId,
-                    'bat_dong_san_id' => null,
-                    'tieu_de' => $tieu_de,
-                    'noi_dung' => $noi_dung,
-                    'trang_thai' => 1
-                ];
-
-                $postId = DealPost::create($data);
-                if ($postId && !empty($saved)) {
-                    DealPost::addImages($postId, $saved);
+                // Determine which user should be recorded as the closer/author.
+                $targetUserId = $userId; // default: the creator
+                if (!empty($ma_nhan_vien)) {
+                    require_once __DIR__ . '/../Models/User.php';
+                    $found = User::findByMaNhanSu($ma_nhan_vien);
+                    if ($found && !empty($found['id'])) {
+                        $targetUserId = (int)$found['id'];
+                    } else {
+                        $errors[] = 'Mã nhân viên không tồn tại trong hệ thống.';
+                    }
                 }
 
-                header('Location: ' . BASE_URL . '/superadmin/notification');
-                exit;
+                if (empty($errors)) {
+                    $data = [
+                        'user_id' => $targetUserId,
+                        'bat_dong_san_id' => null,
+                        'tieu_de' => $tieu_de,
+                        'noi_dung' => $noi_dung,
+                        'trang_thai' => 1
+                    ];
+
+                    $postId = DealPost::create($data);
+                    if ($postId && !empty($saved)) {
+                        DealPost::addImages($postId, $saved);
+                    }
+
+                    header('Location: ' . BASE_URL . '/superadmin/notification');
+                    exit;
+                }
             }
 
             // If validation failed, re-render form with errors and old input
