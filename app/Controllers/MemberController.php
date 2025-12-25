@@ -2,6 +2,13 @@
 
 class MemberController extends Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+        // Chỉ Super Admin mới có quyền truy cập các chức năng này
+        $this->requireRole([ROLE_SUPER_ADMIN]);
+    }
+
     public function owner()
     {
         // fetch query params for pagination / search
@@ -146,6 +153,7 @@ class MemberController extends Controller
             $data['quyen'] = trim($_POST['quyen'] ?? 'user');
             // Nhận giá trị trạng thái (0: Chờ duyệt, 1: Hoạt động, 2: Tạm dừng)
             $data['trang_thai'] = isset($_POST['trang_thai']) ? (int)$_POST['trang_thai'] : 0;
+            $data['vi_tri'] = isset($_POST['vi_tri']) && $_POST['vi_tri'] !== '' ? (int)$_POST['vi_tri'] : null;
 
             // Handle optional password change
             $newPassword = $_POST['password'] ?? '';

@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const paginationContainer = document.querySelector('.pagination-container');
 
         if (tbody && paginationContainer) {
-            const rowsPerPage = 6; // Số dòng mỗi trang
+            const rowsPerPage = 10; // Số dòng mỗi trang
             let currentPage = 1;
 
             const updateHrPagination = function () {
@@ -782,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const paginationContainer = reportTable.querySelector('.pagination-container');
 
         if (tbody && paginationContainer) {
-            const rowsPerPage = 6; // Số dòng mỗi trang
+            const rowsPerPage = 10; // Số dòng mỗi trang
             let currentPage = 1;
 
             const updateReportPagination = function () {

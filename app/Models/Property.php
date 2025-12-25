@@ -189,6 +189,57 @@ class Property extends Model
         return (int)$stmt->fetchColumn();
     }
 
+    // Get ALL properties (both sale and rent)
+    public static function getAll(int $limit = 20, int $offset = 0, ?string $search = null, ?string $trang_thai = null)
+    {
+        $db = self::db();
+        $params = [];
+        $sql = "SELECT * FROM properties WHERE 1=1";
+
+        if ($trang_thai) {
+            $sql .= " AND trang_thai = ?";
+            $params[] = $trang_thai;
+        }
+
+        if ($search) {
+            $like = '%' . $search . '%';
+            $sql .= " AND (tieu_de LIKE ? OR ma_hien_thi LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql .= " ORDER BY id DESC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function countAll(?string $search = null, ?string $trang_thai = null)
+    {
+        $db = self::db();
+        $params = [];
+        $sql = "SELECT COUNT(*) FROM properties WHERE 1=1";
+
+        if ($trang_thai) {
+            $sql .= " AND trang_thai = ?";
+            $params[] = $trang_thai;
+        }
+
+        if ($search) {
+            $like = '%' . $search . '%';
+            $sql .= " AND (tieu_de LIKE ? OR ma_hien_thi LIKE ? OR dia_chi_chi_tiet LIKE ?)";
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
     // Find a single property by its primary id
     public static function findById(int $id)
     {

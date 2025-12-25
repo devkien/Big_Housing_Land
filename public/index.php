@@ -97,6 +97,8 @@ $router->get('/changepassword', 'MainController@changepassword', 'auth');
 $router->post('/changepassword', 'MainController@changepassword', 'auth');
 $router->get('/management-resource', 'MainController@resource', 'auth');
 $router->get('/management-resource-rent', 'MainController@resourceRent', 'auth');
+$router->get('/management-resource-sum', 'MainController@resourceSum', 'auth');
+$router->get('/management-resource-sum2', 'MainController@resourceSum2', 'auth');
 $router->get('/report_list', 'MainController@reportList', 'auth');
 $router->post('/report_list', 'MainController@reportList', 'auth');
 $router->get('/report_customer', 'MainController@reportCustomerDetail', 'auth');
@@ -136,6 +138,9 @@ $router->post('/admin/changepassword', 'AdminController@changepassword', 'role:a
 // Resource  management routes kho tài nguyên
 $router->get('/admin/management-resource', 'AdminController@resource', 'role:admin,super_admin');
 $router->get('/admin/management-resource-rent', 'AdminController@resourceRent', 'role:admin,super_admin');
+$router->get('/admin/management-resource-sum', 'AdminController@resourceSum', 'role:admin,super_admin');
+$router->get('/admin/management-resource-sum_2', 'AdminController@resourceSum2', 'role:admin,super_admin');
+
 $router->get('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
 $router->post('/admin/management-resource-post', 'AdminController@resourcePost', 'role:admin,super_admin');
 $router->post('/admin/update-resource-status', 'AdminController@updateResourceStatus', 'role:admin,super_admin');

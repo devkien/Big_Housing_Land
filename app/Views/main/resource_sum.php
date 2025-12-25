@@ -30,6 +30,7 @@
 
         <div class="tabs-container">
             <button class="tab-btn active">Kho nhà đất</button>
+            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/management-resource-sum2'">Kho nhà cho thuê</button>
         </div>
 
         <div class="toolbar-section">
