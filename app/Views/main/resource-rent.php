@@ -69,7 +69,8 @@
                         foreach ($properties as $p) :
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $statusKey = $p['trang_thai'] ?? '';
+                            $status = $statusMap[$statusKey] ?? ($statusKey ?: '');
                             $address = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($address === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -87,7 +88,7 @@
                                 <td>
                                     <?= $created ?>
                                 </td>
-                                <td><span class="status-badge strong">
+                                <td><span class="status-badge strong status-badge--<?= htmlspecialchars($statusKey) ?>">
                                         <?= htmlspecialchars($status) ?>
                                     </span></td>
                                 <td style=" padding-right:15px;">

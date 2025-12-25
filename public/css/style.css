@@ -1358,6 +1358,50 @@ body {
     background-color: transparent;
 }
 
+/* Status color variants */
+.status-badge--ban_manh {
+    /* Changed from green to red to increase attention */
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #991b1b;
+    /* dark red */
+}
+
+.status-badge--tam_dung_ban {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #92400e;
+    /* amber/dark orange */
+}
+
+.status-badge--dung_ban {
+    background: linear-gradient(90deg, rgba(107, 114, 128, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(107, 114, 128, 0.18);
+    color: #374151;
+    /* gray */
+}
+
+.status-badge--da_ban {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(220, 38, 38, 0.18);
+    color: #991b1b;
+    /* red */
+}
+
+.status-badge--tang_chao {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(59, 130, 246, 0.18);
+    color: #1e40af;
+    /* blue */
+}
+
+.status-badge--ha_chao {
+    background: linear-gradient(90deg, rgba(124, 58, 237, 0.06), rgba(255, 255, 255, 0));
+    border-color: rgba(124, 58, 237, 0.18);
+    color: #5b21b6;
+    /* purple */
+}
+
 /* Badge Bán mạnh: Dòng trắng giữ nguyên, dòng xám (chẵn) thì viền đỏ */
 .resource-table tbody tr:nth-child(even) .status-badge.strong {
     border: 1px solid #E8F4FF;
@@ -1877,10 +1921,6 @@ select.form-input {
     /* Chừa chỗ cho icon không bị chữ đè lên */
 }
 
-/* Ô nhập liệu đang chọn (Viền xanh đậm như ảnh) */
-.form-input.focus-blue {
-    border: 2px solid #0099ff;
-}
 
 /* Wrapper cho một dòng nhập liệu (để chỉnh margin) */
 .form-group {
