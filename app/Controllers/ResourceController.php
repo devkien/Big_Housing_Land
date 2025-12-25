@@ -249,6 +249,11 @@ class ResourceController extends Controller
         // load collections for "save to collection" modal
         require_once __DIR__ . '/../Models/Collection.php';
         $collections = Collection::allWithCount();
+        // build map of property_id => count of collections that include it
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds));
 
         $this->view('superadmin/resource', [
             'properties' => $properties,
@@ -259,7 +264,8 @@ class ResourceController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -281,6 +287,14 @@ class ResourceController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
+        // load collections and build collection map
+        require_once __DIR__ . '/../Models/Collection.php';
+        $collections = Collection::allWithCount();
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds));
+
         $this->view('superadmin/resource-rent', [
             'properties' => $properties,
             'page' => $page,
@@ -290,11 +304,8 @@ class ResourceController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            // load collections for save modal
-            'collections' => (function () {
-                require_once __DIR__ . '/../Models/Collection.php';
-                return Collection::allWithCount();
-            })()
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -442,5 +453,27 @@ class ResourceController extends Controller
             http_response_code(500);
             echo json_encode(['ok' => false, 'message' => 'Không thể cập nhật cơ sở dữ liệu']);
         }
+    }
+
+    // AJAX: return collection ids that include a given property for current user
+    public function getCollectionsForProperty()
+    {
+        require_once __DIR__ . '/../Helpers/functions.php';
+        header('Content-Type: application/json');
+
+        $id = isset($_GET['property_id']) ? (int)$_GET['property_id'] : 0;
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Missing property_id']);
+            return;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = isset($user['id']) ? (int)$user['id'] : 0;
+
+        $ids = Collection::getCollectionIdsForProperty($id, $userId);
+        echo json_encode(['ok' => true, 'collections' => array_values($ids)]);
     }
 }

@@ -13,8 +13,8 @@
     <div class="app-container" style="background-color: #E8F4FF;">
 
         <header class="home-header">
-            <form class="search-bar" action="resource.html" method="GET">
-                <input type="text" name="keyword" placeholder="Nhập thông tin tìm kiếm...">
+            <form class="search-bar" action="<?= BASE_URL ?>/management-resource" method="GET">
+                <input type="text" name="q" placeholder="Tìm kiếm mã tài nguyên...">
                 <button type="submit" style="border: none; background: transparent; padding: 0; cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </header>
@@ -31,39 +31,59 @@
             <div class="btn-news-header">BẢNG TIN</div>
 
             <div class="news-scroll">
-                <article class="news-card">
-                    <div class="news-header">
-                        <img src="<?= BASE_URL ?>/icon/menuanhdaidien.png" class="avatar" />
-                        <div class="news-info">
-                            <h4>Big Housing Land</h4>
-                            <span>8 giờ trước</span>
+                <?php
+                $posts = $pinnedPosts ?? [];
+                if (!empty($posts) && is_array($posts)):
+                    foreach ($posts as $post):
+                        $title = htmlspecialchars($post['tieu_de'] ?? '');
+                        $created = !empty($post['created_at']) ? date('m/d/Y', strtotime($post['created_at'])) : '';
+                        $snippet = mb_strimwidth(strip_tags($post['noi_dung'] ?? ''), 0, 120, '...');
+                        $firstImg = '';
+                        if (!empty($post['images']) && is_array($post['images']) && !empty($post['images'][0]['image_path'])) {
+                            $firstImg = htmlspecialchars($post['images'][0]['image_path']);
+                        }
+                ?>
+                        <article class="news-card" onclick="window.location.href='<?= BASE_URL ?>/internal-info-detail?id=<?= (int)$post['id'] ?>'" style="cursor:pointer;">
+                            <div class="news-header">
+                                <img src="<?= BASE_URL ?>/icon/menuanhdaidien.png" class="avatar" />
+                                <div class="news-info">
+                                    <h4><?= htmlspecialchars($post['author_name'] ?? 'Big Housing Land') ?></h4>
+                                    <span><?= $created ?></span>
+                                </div>
+                            </div>
+                            <div class="news-content">
+                                <p>
+                                    <strong><?= $title ?></strong> <?= $snippet ?><span class="dots">...</span><span class="more-text" style="display: none;"> <?= strip_tags($post['noi_dung'] ?? '') ?></span>
+                                    <a href="javascript:void(0)" class="see-more" onclick="event.stopPropagation(); toggleNews(this)">Xem thêm</a>
+                                </p>
+                                <?php if ($firstImg !== ''): ?>
+                                    <img src="<?= BASE_URL ?>/<?= $firstImg ?>" alt="" class="doc-preview-images">
+                                <?php else: ?>
+                                    <img src="<?= BASE_URL ?>/images/vanban.png" alt="Văn bản thông báo" class="doc-preview-images">
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    <?php
+                    endforeach;
+                else:
+                    ?>
+                    <article class="news-card">
+                        <div class="news-header">
+                            <img src="<?= BASE_URL ?>/icon/menuanhdaidien.png" class="avatar" />
+                            <div class="news-info">
+                                <h4>Big Housing Land</h4>
+                                <span>8 giờ trước</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="news-content">
-                        <p>
-                            <strong>THÔNG BÁO: THAY ĐỔI CHÍNH SÁCH ĐỐI VỚI ĐẦU CHỦ:</strong> Đối với việc đăng tin của các đầu chủ cần phải tuân thủ<span class="dots">...</span><span class="more-text" style="display: none;"> nghiêm ngặt các quy định về bản quyền hình ảnh, thông tin chính xác và không trùng lặp. Vi phạm sẽ bị xử lý theo quy chế công ty.</span>
-                            <a href="javascript:void(0)" class="see-more" onclick="toggleNews(this)">Xem thêm</a>
-                        </p>
-                        <img src="<?= BASE_URL ?>/images/vanban.png" alt="Văn bản thông báo" class="doc-preview-images">
-                    </div>
-                </article>
-
-                <article class="news-card">
-                    <div class="news-header">
-                        <img src="<?= BASE_URL ?>/icon/menuanhdaidien.png" class="avatar" />
-                        <div class="news-info">
-                            <h4>Big Housing Land</h4>
-                            <span>8 giờ trước</span>
+                        <div class="news-content">
+                            <p>
+                                <strong>THÔNG BÁO: THAY ĐỔI CHÍNH SÁCH ĐỐI VỚI ĐẦU CHỦ:</strong> Đối với việc đăng tin của các đầu chủ cần phải tuân thủ<span class="dots">...</span><span class="more-text" style="display: none;"> nghiêm ngặt các quy định về bản quyền hình ảnh, thông tin chính xác và không trùng lặp. Vi phạm sẽ bị xử lý theo quy chế công ty.</span>
+                                <a href="javascript:void(0)" class="see-more" onclick="toggleNews(this)">Xem thêm</a>
+                            </p>
+                            <img src="<?= BASE_URL ?>/images/vanban.png" alt="Văn bản thông báo" class="doc-preview-images">
                         </div>
-                    </div>
-                    <div class="news-content">
-                        <p>
-                            <strong>THÔNG BÁO: THAY ĐỔI CHÍNH SÁCH ĐỐI VỚI ĐẦU CHỦ:</strong> Đối với việc đăng tin của các đầu chủ cần phải tuân thủ<span class="dots">...</span><span class="more-text" style="display: none;"> nghiêm ngặt các quy định về bản quyền hình ảnh, thông tin chính xác và không trùng lặp. Vi phạm sẽ bị xử lý theo quy chế công ty.</span>
-                            <a href="javascript:void(0)" class="see-more" onclick="toggleNews(this)">Xem thêm</a>
-                        </p>
-                        <img src="<?= BASE_URL ?>/images/vanban.png" alt="Văn bản thông báo" class="doc-preview-images">
-                    </div>
-                </article>
+                    </article>
+                <?php endif; ?>
             </div>
 
         </section>

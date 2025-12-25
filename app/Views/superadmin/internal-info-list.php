@@ -22,7 +22,7 @@
         </div>
 
         <div style="background: white; min-height: calc(100vh - 130px);">
-            <div style="padding: 15px 15px 0 15px; display: flex; gap: 10px;">
+            <div style="padding: 15px 15px 10px 15px; display: flex; gap: 10px;">
                 <button class="btn-tool-outline" id="btn-filter-internal"><i class="fa-solid fa-filter"></i> Lọc</button>
                 <button class="btn-tool-outline" id="btn-search-internal"><i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm</button>
             </div>

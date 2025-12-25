@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,9 +18,10 @@
     </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
+
 <body>
     <div class="app-container" style="background: #f9f9f9; display: flex; flex-direction: column; height: 100vh;">
-        
+
         <header class="detail-header">
             <a href="<?= BASE_URL ?>/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
             <div class="detail-title">Bộ sưu tập</div>
@@ -37,7 +39,7 @@
                     Không tìm thấy bộ sưu tập nào.
                 </div>
             <?php else: ?>
-                <?php foreach ($collections as $c): 
+                <?php foreach ($collections as $c):
                     $name = htmlspecialchars($c['ten_bo_suu_tap'] ?? '');
                     $count = $c['item_count'] ?? 0;
                     $firstChar = mb_substr($name, 0, 1, 'UTF-8');
@@ -46,18 +48,18 @@
                         $bgImage = "background-image: url('" . BASE_URL . "/" . $c['anh_dai_dien'] . "'); background-size: cover; background-position: center; color: transparent;";
                     }
                 ?>
-                <div class="collection-card">
-                    <div class="collection-thumb" style="<?= $bgImage ?>"><?= empty($bgImage) ? $firstChar : '' ?></div>
-                    <div class="collection-info">
-                        <div class="collection-name"><?= $name ?></div>
-                        <div class="collection-count"><?= $count ?> tin</div>
+                    <div class="collection-card" data-id="<?= (int)$c['id'] ?>">
+                        <div class="collection-thumb" style="<?= $bgImage ?>"><?= empty($bgImage) ? $firstChar : '' ?></div>
+                        <div class="collection-info">
+                            <div class="collection-name"><?= $name ?></div>
+                            <div class="collection-count"><?= $count ?> tin</div>
+                        </div>
+                        <div class="btn-more-dots"
+                            data-id="<?= $c['id'] ?>"
+                            data-name="<?= $name ?>">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </div>
                     </div>
-                    <div class="btn-more-dots" 
-                         data-id="<?= $c['id'] ?>" 
-                         data-name="<?= $name ?>">
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </div>
-                </div>
                 <?php endforeach; ?>
             <?php endif; ?>
 
@@ -109,7 +111,7 @@
             const dots = document.querySelectorAll('.btn-more-dots');
             const cancelDelete = document.getElementById('cancel-delete');
             const cancelRename = document.getElementById('cancel-rename');
-            
+
             const btnEdit = document.getElementById('edit-collection');
             const btnDelete = document.getElementById('confirm-delete');
             const btnSaveRename = document.getElementById('confirm-rename');
@@ -124,6 +126,17 @@
                     currentId = this.getAttribute('data-id');
                     currentName = this.getAttribute('data-name');
                     modal.style.display = 'flex';
+                });
+            });
+
+            // Click on collection card -> open collection detail (but ignore clicks on the dots button)
+            document.querySelectorAll('.collection-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('.btn-more-dots')) return; // ignore clicks on options
+                    const cid = this.getAttribute('data-id');
+                    if (cid) {
+                        window.location.href = '<?= BASE_URL ?>/collection-detail?id=' + encodeURIComponent(cid);
+                    }
                 });
             });
 
@@ -156,14 +169,14 @@
                 formData.append('ten_bo_suu_tap', newName);
 
                 fetch('<?= BASE_URL ?>/collection-rename', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.ok) location.reload();
-                    else alert(data.error || 'Lỗi khi đổi tên');
-                });
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.ok) location.reload();
+                        else alert(data.error || 'Lỗi khi đổi tên');
+                    });
             };
 
             // Handle Delete
@@ -174,16 +187,17 @@
                 formData.append('id', currentId);
 
                 fetch('<?= BASE_URL ?>/collection-delete', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.ok) location.reload();
-                    else alert(data.error || 'Lỗi khi xóa');
-                });
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.ok) location.reload();
+                        else alert(data.error || 'Lỗi khi xóa');
+                    });
             };
         });
     </script>
 </body>
+
 </html>

@@ -30,6 +30,63 @@
             gap: 5px;
             /* Khoảng cách giữa checkbox và chữ */
         }
+
+        /* Make alerts on the login page more prominent only here */
+        .login-page .alert-wrapper {
+            max-width: 420px;
+            margin: 12px auto 18px;
+            padding: 0 8px;
+            position: relative;
+            z-index: 3;
+        }
+
+        .login-page .alert {
+            background: #ffffff;
+            color: #071133;
+            border-left: 6px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.18);
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        .login-page .alert-inner {
+            gap: 10px;
+            padding: 12px 14px;
+            align-items: center;
+        }
+
+        .login-page .alert-icon {
+            font-size: 20px;
+            width: 30px;
+            margin-top: 0;
+        }
+
+        .login-page .alert-message {
+            font-size: 15px;
+            font-weight: 700;
+            color: #071133;
+        }
+
+        .login-page .alert-close {
+            color: rgba(7, 17, 51, 0.45);
+        }
+
+        /* Slightly stronger colors per type on login */
+        .login-page .alert--error {
+            border-left-color: #DC2626;
+        }
+
+        .login-page .alert--success {
+            border-left-color: #16A34A;
+        }
+
+        .login-page .alert--warning {
+            border-left-color: #D97706;
+        }
+
+        .login-page .alert--info {
+            border-left-color: #2563EB;
+        }
     </style>
 </head>
 
@@ -86,6 +143,23 @@
             this.classList.toggle('fa-eye');
             this.classList.toggle('fa-eye-slash');
         });
+    </script>
+    <script>
+        // If server set the 'bh_clear_form' cookie after successful registration,
+        // clear the saved register form in localStorage so old inputs don't persist.
+        (function() {
+            try {
+                const cookies = document.cookie.split(';').map(c => c.trim());
+                const found = cookies.find(c => c.indexOf('bh_clear_form=') === 0);
+                if (found) {
+                    localStorage.removeItem('bh_register_v1');
+                    // delete cookie
+                    document.cookie = 'bh_clear_form=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                }
+            } catch (e) {
+                // ignore
+            }
+        })();
     </script>
 </body>
 

@@ -41,7 +41,7 @@
 
         <div class="profile-text-info">
             <div class="user-fullname"><?php echo htmlspecialchars($user['ho_ten'] ?? '---', ENT_QUOTES, 'UTF-8'); ?></div>
-            <div class="user-job-title">Cấp quản lý</div>
+            <div class="user-job-title">Cấp người dùng</div>
             <div class="user-office">Trụ sở <?php echo htmlspecialchars($user['phong_ban'] ?? $user['dia_chi'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
 
             <?php if (!empty($user['link_fb'])): ?>

@@ -13,16 +13,29 @@ class AuthController extends Controller
         $identity = $_POST['identity'] ?? '';
         $password = $_POST['password'] ?? '';
 
+        // Basic validation
+        if (empty($identity) || empty($password)) {
+            $_SESSION['error'] = 'Vui lòng nhập số điện thoại/CCCD và mật khẩu';
+            header('Location: ' . BASE_URL . '/login');
+            exit;
+        }
+
         $user = User::findForLogin($identity);
 
-        if (!$user || !password_verify($password, $user['password'])) {
-            // $_SESSION['error'] = 'Sai thông tin đăng nhập';
+        if (!$user) {
+            $_SESSION['error'] = 'Tài khoản không tồn tại';
+            header('Location: ' . BASE_URL . '/login');
+            exit;
+        }
+
+        if (!password_verify($password, $user['password'])) {
+            $_SESSION['error'] = 'Mật khẩu không đúng';
             header('Location: ' . BASE_URL . '/login');
             exit;
         }
 
         if ($user['trang_thai'] != 1) {
-            // $_SESSION['error'] = 'Tài khoản đã bị khóa';
+            $_SESSION['error'] = 'Tài khoản đã bị khóa';
             header('Location: ' . BASE_URL . '/login');
             exit;
         }
@@ -70,7 +83,7 @@ class AuthController extends Controller
             'vi_tri'          => $_POST['vi_tri'] ?? '',
         ];
         // Helper lưu lại input cũ (trừ password)
-        $saveOldInput = function() use ($data) {
+        $saveOldInput = function () use ($data) {
             $old = $data;
             unset($old['password']);
             $_SESSION['old'] = $old;
@@ -233,6 +246,8 @@ class AuthController extends Controller
 
         unset($_SESSION['old']); // Xóa dữ liệu cũ nếu thành công
         $_SESSION['success'] = 'Đăng ký thành công, vui lòng chờ xét duyệt';
+        // Set a short-lived cookie so client-side can clear localStorage after successful registration
+        setcookie('bh_clear_form', '1', time() + 60, '/');
         header('Location: ' . BASE_URL . '/login');
     }
 

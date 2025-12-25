@@ -18,7 +18,7 @@
             <img src="../icon/menuanhdaidien.png" class="profile-avatar-large">
             <div class="profile-info">
                 <h3><?php echo isset($user['ho_ten']) ? htmlspecialchars($user['ho_ten'], ENT_QUOTES, 'UTF-8') : '---'; ?></h3>
-                <div class="profile-role">Cấp quản lý</div>
+                <div class="profile-role">Người dùng</div>
                 <div class="office-badge">TRỤ SỞ - HÀ NỘI</div>
             </div>
             <i class="fa-solid fa-chevron-right arrow-right-absolute"></i>
@@ -65,17 +65,18 @@
                 <i class="fa-solid fa-chevron-up" style="font-size:12px;"></i>
             </div>
 
-                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/terms-service'">Điều khoản dịch vụ</div>
-                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/privacy-policy'">Chính sách bảo mật</div>
-                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/payment-policy'">Chính sách hoàn tiền/đổi trả</div>
-                    <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/cookie-policy'">Chính sách Cookie</div>
-                </div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/terms-service'">Điều khoản dịch vụ</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/privacy-policy'">Chính sách bảo mật</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/payment-policy'">Chính sách hoàn tiền/đổi trả</div>
+            <div class="sub-setting-item" onclick="window.location.href='<?= BASE_URL ?>/cookie-policy'">Chính sách Cookie</div>
+        </div>
         <button class="btn-logout" onclick="window.location.href='<?= BASE_URL ?>/logout'">Đăng xuất</button>
         <div style="height: 60px;"></div>
         <div id="bottom-nav-container">
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
+    <script src="<?= BASE_URL ?>/js/script.js"></script>
 </body>
 
 </html>

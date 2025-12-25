@@ -11,8 +11,8 @@
 
 <body>
     <div class="app-container register-page">
-        <?php 
-        require_once __DIR__ . '/../partials/alert.php'; 
+        <?php
+        require_once __DIR__ . '/../partials/alert.php';
         $old = $_SESSION['old'] ?? [];
         unset($_SESSION['old']);
         ?>
@@ -145,6 +145,101 @@
             const iconPlus = document.getElementById('icon-plus-cccd');
             const hintText = uploadBox.querySelector('.upload-hint-text');
 
+            // Local persistence key
+            const FORM_KEY = 'bh_register_v1';
+            const form = document.querySelector('form[action="<?= BASE_URL ?>/register"]');
+
+            // If server set cookie to indicate successful registration, clear saved form
+            try {
+                const cookieParts = document.cookie.split(';').map(c => c.trim());
+                const clearCookie = cookieParts.find(c => c.indexOf('bh_clear_form=') === 0);
+                if (clearCookie) {
+                    clearSavedForm();
+                    // delete cookie
+                    document.cookie = 'bh_clear_form=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            function saveFormToLocal() {
+                if (!form) return;
+                const data = {};
+                const elements = form.querySelectorAll('input[name], select[name], textarea[name]');
+                elements.forEach(el => {
+                    const name = el.name;
+                    if (!name) return;
+                    if (el.type === 'password' || el.type === 'file') return; // do not persist password or file
+                    if (el.type === 'checkbox') {
+                        data[name] = el.checked;
+                    } else if (el.type === 'radio') {
+                        if (el.checked) data[name] = el.value;
+                    } else {
+                        data[name] = el.value;
+                    }
+                });
+                // also store preview image (base64) if available
+                if (previewImg && previewImg.src) {
+                    data._anh_cccd_preview = previewImg.src;
+                }
+                try {
+                    localStorage.setItem(FORM_KEY, JSON.stringify(data));
+                } catch (e) {
+                    /* ignore storage errors */
+                }
+            }
+
+            function restoreFormFromLocal() {
+                if (!form) return;
+                let data = null;
+                try {
+                    data = JSON.parse(localStorage.getItem(FORM_KEY));
+                } catch (e) {
+                    data = null;
+                }
+                if (!data) return;
+                const elements = form.querySelectorAll('input[name], select[name], textarea[name]');
+                elements.forEach(el => {
+                    const name = el.name;
+                    if (!name || !(name in data)) return;
+                    if (el.type === 'checkbox') {
+                        el.checked = !!data[name];
+                    } else if (el.type === 'radio') {
+                        el.checked = (el.value === data[name]);
+                    } else {
+                        el.value = data[name];
+                    }
+                });
+                // restore preview image (visual only)
+                if (data._anh_cccd_preview) {
+                    previewContainer.style.display = 'flex';
+                    previewImg.src = data._anh_cccd_preview;
+                    iconCamera.style.display = 'none';
+                    iconPlus.style.display = 'none';
+                    if (hintText) hintText.style.display = 'none';
+                    uploadBox.style.backgroundColor = 'white';
+                }
+            }
+
+            // hook inputs to save
+            function attachSaveListeners() {
+                if (!form) return;
+                const elements = form.querySelectorAll('input[name], select[name], textarea[name]');
+                elements.forEach(el => {
+                    if (el.type === 'file') return;
+                    el.addEventListener('input', saveFormToLocal);
+                    el.addEventListener('change', saveFormToLocal);
+                });
+            }
+
+            // clear saved form data
+            function clearSavedForm() {
+                try {
+                    localStorage.removeItem(FORM_KEY);
+                } catch (e) {}
+            }
+
+            // Image upload / preview handling
             uploadBox.addEventListener('click', function() {
                 if (previewContainer.style.display === 'none') {
                     fileInput.click();
@@ -162,6 +257,7 @@
                         if (hintText) hintText.style.display = 'none';
                         uploadBox.style.backgroundColor = 'white';
                         previewImg.src = evt.target.result;
+                        saveFormToLocal(); // save preview (visual)
                     }
                     reader.readAsDataURL(file);
                 }
@@ -176,7 +272,28 @@
                 iconPlus.style.display = 'block';
                 if (hintText) hintText.style.display = 'block';
                 uploadBox.style.backgroundColor = '#f2f6ff';
+                // remove stored preview
+                const stored = JSON.parse(localStorage.getItem(FORM_KEY) || '{}');
+                if (stored._anh_cccd_preview) delete stored._anh_cccd_preview;
+                try {
+                    localStorage.setItem(FORM_KEY, JSON.stringify(stored));
+                } catch (e) {}
             });
+
+            // if there's a success alert on the page, clear stored form (registration succeeded)
+            const successAlert = document.querySelector('.alert--success');
+            if (successAlert) {
+                clearSavedForm();
+            } else {
+                // otherwise restore previous values (if any) and hook listeners
+                restoreFormFromLocal();
+                attachSaveListeners();
+            }
+
+            // Optional: clear saved form after successful redirect away from page
+            // When the form is submitted, we do not immediately clear storage because
+            // submission may fail and user would lose data; server-side success will
+            // render an alert and trigger the clearing above.
         });
     </script>
 </body>

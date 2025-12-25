@@ -104,6 +104,7 @@ $router->post('/report_list', 'MainController@reportList', 'auth');
 $router->get('/report_customer', 'MainController@reportCustomerDetail', 'auth');
 $router->get('/detail', 'MainController@detail', 'auth');
 $router->get('/collection', 'MainController@collection', 'auth');
+$router->get('/collection-detail', 'MainController@collectionDetail', 'auth');
 $router->get('/cre-collection', 'MainController@creCollection', 'auth');
 $router->post('/cre-collection', 'MainController@creCollection', 'auth');
 $router->post('/collection-rename', 'MainController@renameCollection', 'auth');
@@ -214,6 +215,8 @@ $router->post('/superadmin/management-resource-post', 'ResourceController@resour
 $router->post('/superadmin/property-update-status', 'ResourceController@updateStatus', 'role:super_admin');
 // Save resource to collections (AJAX)
 $router->post('/superadmin/save-to-collections', 'ResourceController@saveToCollections', 'role:super_admin');
+// Get collections that contain a given property (AJAX)
+$router->get('/superadmin/get-collections-for-property', 'ResourceController@getCollectionsForProperty', 'role:super_admin');
 
 // Collection management routes
 $router->get('/superadmin/collection', 'CollectionController@collection', 'role:super_admin');

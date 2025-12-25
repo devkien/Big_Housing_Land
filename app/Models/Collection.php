@@ -112,6 +112,28 @@ class Collection extends Model
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
+    // Return map of resource_id => count of collections that include it
+    public static function getCountsForProperties(array $propertyIds, string $resourceType = 'bat_dong_san')
+    {
+        if (empty($propertyIds)) return [];
+        $db = self::db();
+        $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+        $sql = "SELECT resource_id, COUNT(*) AS cnt FROM collection_items WHERE resource_id IN ($placeholders) AND resource_type = ? GROUP BY resource_id";
+        $params = array_merge(array_values($propertyIds), [$resourceType]);
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $map = [];
+            foreach ($rows as $r) {
+                $map[(int)$r['resource_id']] = (int)$r['cnt'];
+            }
+            return $map;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     public static function create(array $data)
     {
         $db = self::db();

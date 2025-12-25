@@ -14,7 +14,24 @@ class MainController extends Controller
 
     public function index()
     {
-        $this->view('main/home');
+        // Load pinned internal posts for news feed (same as admin/superadmin)
+        require_once __DIR__ . '/../Models/InternalPost.php';
+        require_once __DIR__ . '/../Models/User.php';
+        $pinned = InternalPost::getPinned(6);
+        $pinnedFull = [];
+        foreach ($pinned as $p) {
+            $full = InternalPost::getById((int)$p['id']);
+            if ($full) {
+                $author = null;
+                if (!empty($full['user_id'])) {
+                    $author = User::findById((int)$full['user_id']);
+                }
+                $full['author_name'] = $author['ho_ten'] ?? $author['name'] ?? 'Big Housing Land';
+                $pinnedFull[] = $full;
+            }
+        }
+
+        $this->view('main/home', ['pinnedPosts' => $pinnedFull]);
     }
 
     public function logout()
@@ -351,7 +368,7 @@ class MainController extends Controller
             'collections' => $collections
         ]);
     }
-      public function resourceSum2()
+    public function resourceSum2()
     {
         // list kho_nha_dat (Sum version)
         require_once __DIR__ . '/../Models/Property.php';
@@ -562,6 +579,48 @@ class MainController extends Controller
         $this->view('main/collection', [
             'collections' => $collections,
             'search' => $search
+        ]);
+    }
+
+    public function collectionDetail()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            header('Location: ' . BASE_URL . '/collection');
+            exit;
+        }
+
+        $collection = Collection::getById($id);
+        if (!$collection) {
+            header('Location: ' . BASE_URL . '/collection');
+            exit;
+        }
+
+        // Ensure the collection belongs to current user
+        if ((int)$collection['user_id'] !== (int)$userId) {
+            // not allowed
+            header('Location: ' . BASE_URL . '/collection');
+            exit;
+        }
+
+        // Read optional filters from query string
+        $filters = [];
+        if (isset($_GET['q']) && trim($_GET['q']) !== '') $filters['q'] = trim($_GET['q']);
+        if (isset($_GET['status']) && trim($_GET['status']) !== '' && trim($_GET['status']) !== 'all') $filters['status'] = trim($_GET['status']);
+        if (isset($_GET['address']) && trim($_GET['address']) !== '') $filters['address'] = trim($_GET['address']);
+
+        $items = Collection::getItems($id, 'bat_dong_san', $filters);
+
+        $this->view('main/collection-detail', [
+            'collection' => $collection,
+            'items' => $items,
+            'filters' => $filters
         ]);
     }
 
