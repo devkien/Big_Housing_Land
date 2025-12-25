@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!paginationContainer) {
             paginationContainer = document.querySelector('.pagination-container');
         }
-        const rowsPerPage = 6;
+        const rowsPerPage = 10;
         let currentPage = 1;
 
         updatePagination = function () {

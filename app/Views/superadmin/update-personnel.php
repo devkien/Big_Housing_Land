@@ -196,10 +196,11 @@
                 <div class="edit-form-group">
                     <div class="edit-label-row"><span>13.Trạng thái hoạt động</span></div>
                     <div class="edit-input-box input-relative">
-                        <select class="custom-select" name="trang_thai" style="padding-left: 10px; border: 1px solid white;">
-                            <option value="Hoạt động" <?= (isset($user['trang_thai']) && $user['trang_thai'] == 1) ? 'selected' : '' ?>>Hoạt động</option>
-                            <option value="Tạm dừng" <?= (isset($user['trang_thai']) && $user['trang_thai'] != 1) ? 'selected' : '' ?>>Tạm dừng</option>
-                            <option value="Dừng hoạt động">Chờ duyệt</option>
+                        <?php $status = old('trang_thai', isset($user['trang_thai']) ? $user['trang_thai'] : 0); ?>
+                        <select class="custom-select" name="trang_thai" style="padding-left: 10px; cursor: pointer;">
+                            <option value="1" <?= (string)$status === '1' ? 'selected' : '' ?>>Hoạt động</option>
+                            <option value="2" <?= (string)$status === '2' ? 'selected' : '' ?>>Tạm dừng</option>
+                            <option value="0" <?= (string)$status === '0' ? 'selected' : '' ?>>Chờ duyệt</option>
                         </select>
                         <i class="fa-solid fa-chevron-down arrow-down-absolute"></i>
                     </div>

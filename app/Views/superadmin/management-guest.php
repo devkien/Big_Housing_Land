@@ -56,8 +56,17 @@
                         </tr>
                         <?php else:
                         foreach ($rows as $u):
-                            $statusClass = (isset($u['trang_thai']) && $u['trang_thai'] == 1) ? 'status-active' : 'status-pause';
-                            $statusText = (isset($u['trang_thai']) && $u['trang_thai'] == 1) ? 'Hoạt động' : 'Tạm dừng';
+                            $st = (int)($u['trang_thai'] ?? 0);
+                            if ($st === 1) {
+                                $statusClass = 'status-active';
+                                $statusText = 'Hoạt động';
+                            } elseif ($st === 2) {
+                                $statusClass = 'status-pause';
+                                $statusText = 'Tạm dừng';
+                            } else {
+                                $statusClass = 'status-pause';
+                                $statusText = 'Chờ duyệt';
+                            }
                         ?>
                             <tr>
                                 <td style="padding-left:10px; text-align: center;">
@@ -87,21 +96,27 @@
         </div>
 
         <div class="pagination-container" style="text-align:center; margin-top:18px;">
-            <?php if (isset($pages) && $pages > 1): ?>
+            <?php 
+            if (isset($pages) && $pages > 1): 
+                $qs = [];
+                if (!empty($search)) $qs['q'] = $search;
+                if (isset($status) && $status !== null && $status !== '') $qs['status'] = $status;
+                $qsStr = !empty($qs) ? '&' . http_build_query($qs) : '';
+            ?>
                 <?php if ($page > 1): ?>
-                    <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $page - 1 ?><?= !empty($search) ? '&q=' . urlencode($search) : '' ?>">&lt;</a>
+                    <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $page - 1 ?><?= $qsStr ?>">&lt;</a>
                 <?php endif; ?>
 
                 <?php for ($p = 1; $p <= $pages; $p++): ?>
                     <?php if ($p == $page): ?>
                         <span class="page-link active"><?= $p ?></span>
                     <?php else: ?>
-                        <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $p ?><?= !empty($search) ? '&q=' . urlencode($search) : '' ?>"><?= $p ?></a>
+                        <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $p ?><?= $qsStr ?>"><?= $p ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($page < $pages): ?>
-                    <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $page + 1 ?><?= !empty($search) ? '&q=' . urlencode($search) : '' ?>">&gt;</a>
+                    <a class="page-link" href="<?= BASE_URL ?>/superadmin/management-guest?page=<?= $page + 1 ?><?= $qsStr ?>">&gt;</a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>

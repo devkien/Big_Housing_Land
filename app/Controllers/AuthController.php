@@ -21,7 +21,7 @@ class AuthController extends Controller
             exit;
         }
 
-        if ($user['trang_thai'] == 0) {
+        if ($user['trang_thai'] != 1) {
             // $_SESSION['error'] = 'Tài khoản đã bị khóa';
             header('Location: ' . BASE_URL . '/login');
             exit;
@@ -63,28 +63,53 @@ class AuthController extends Controller
             'ho_ten'          => trim($_POST['ho_ten'] ?? ''),
             'nam_sinh'        => $_POST['nam_sinh'] ?? '',
             'dia_chi'         => trim($_POST['dia_chi'] ?? ''),
-            'gioi_tinh'       => $_POST['gioi_tinh'] ?? 'khac',
+            'gioi_tinh'       => $_POST['gioi_tinh'] ?? '',
             'email'           => trim($_POST['email'] ?? ''),
             'link_fb'         => trim($_POST['link_fb'] ?? ''),
             'ma_gioi_thieu'   => trim($_POST['ma_gioi_thieu'] ?? ''),
-            'loai_tai_khoan'  => $_POST['loai_tai_khoan'] ?? 'nhan_vien',
-            'phong_ban'       => $_POST['phong_ban'] ?? null,
+            'loai_tai_khoan'  => $_POST['loai_tai_khoan'] ?? '',
+            'phong_ban'       => $_POST['phong_ban'] ?? '',
+            'vi_tri'          => $_POST['vi_tri'] ?? '',
         ];
+        // Helper lưu lại input cũ (trừ password)
+        $saveOldInput = function() use ($data) {
+            $old = $data;
+            unset($old['password']);
+            $_SESSION['old'] = $old;
+        };
 
         // ===== VALIDATE BẮT BUỘC =====
         if (
             empty($data['so_dien_thoai']) ||
             empty($data['password']) ||
             empty($data['ho_ten']) ||
-            empty($data['nam_sinh'])
+            empty($data['nam_sinh']) ||
+            empty($data['dia_chi']) ||
+            empty($data['gioi_tinh']) ||
+            empty($data['email']) ||
+            empty($data['link_fb']) ||
+            empty($data['ma_gioi_thieu']) ||
+            empty($data['loai_tai_khoan']) ||
+            empty($data['phong_ban']) ||
+            empty($data['vi_tri'])
         ) {
+            $saveOldInput();
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc';
+            header('Location: ' . BASE_URL . '/register');
+            exit;
+        }
+
+        // ===== CHECK ẢNH CCCD BẮT BUỘC =====
+        if (empty($_FILES['anh_cccd']) || $_FILES['anh_cccd']['error'] !== UPLOAD_ERR_OK) {
+            $saveOldInput();
+            $_SESSION['error'] = 'Vui lòng tải lên ảnh CCCD';
             header('Location: ' . BASE_URL . '/register');
             exit;
         }
 
         // ===== CHECK TRÙNG SĐT =====
         if (User::findByPhone($data['so_dien_thoai'])) {
+            $saveOldInput();
             $_SESSION['error'] = 'Số điện thoại đã tồn tại';
             header('Location: ' . BASE_URL . '/register');
             exit;
@@ -92,7 +117,16 @@ class AuthController extends Controller
 
         // ===== CHECK TRÙNG EMAIL (NẾU CÓ) =====
         if (!empty($data['email']) && User::findByEmail($data['email'])) {
+            $saveOldInput();
             $_SESSION['error'] = 'Email đã tồn tại';
+            header('Location: ' . BASE_URL . '/register');
+            exit;
+        }
+
+        // ===== CHECK MÃ GIỚI THIỆU TỒN TẠI =====
+        if (!User::findByMaNhanSu($data['ma_gioi_thieu'])) {
+            $saveOldInput();
+            $_SESSION['error'] = 'Mã giới thiệu không tồn tại';
             header('Location: ' . BASE_URL . '/register');
             exit;
         }
@@ -105,6 +139,7 @@ class AuthController extends Controller
             $file = $_FILES['anh_cccd'];
             $allowed = ['image/jpeg', 'image/png', 'image/webp'];
             if ($file['size'] > 3 * 1024 * 1024) {
+                $saveOldInput();
                 $_SESSION['error'] = 'Kích thước ảnh không được vượt quá 3MB';
                 header('Location: ' . BASE_URL . '/register');
                 exit;
@@ -113,6 +148,7 @@ class AuthController extends Controller
             $mime = finfo_file($finfo, $file['tmp_name']);
             finfo_close($finfo);
             if (!in_array($mime, $allowed, true)) {
+                $saveOldInput();
                 $_SESSION['error'] = 'Định dạng ảnh không hợp lệ (chỉ JPG/PNG/WEBP)';
                 header('Location: ' . BASE_URL . '/register');
                 exit;
@@ -128,6 +164,7 @@ class AuthController extends Controller
             $dest = $uploadsDir . '/' . $filename;
 
             if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                $saveOldInput();
                 $_SESSION['error'] = 'Không lưu được ảnh. Vui lòng thử lại.';
                 header('Location: ' . BASE_URL . '/register');
                 exit;
@@ -143,19 +180,43 @@ class AuthController extends Controller
             $data['loai_tai_khoan'] = 'nhan_vien';
         }
 
-        $data['quyen'] = 'user';
-        $data['trang_thai'] = 1;
+        // Map loai_tai_khoan to quyen
+        if ($data['loai_tai_khoan'] === 'quan_ly') {
+            $data['quyen'] = 'admin';
+        } else {
+            // 'nhan_vien' hoặc các trường hợp khác sẽ có quyền 'user'
+            $data['quyen'] = 'user';
+        }
+        $data['trang_thai'] = 0;
+
+        // ===== TỰ ĐỘNG TẠO MÃ USER (MNV01, MNV02...) =====
+        $db = \Database::connect();
+        // Lấy mã nhân sự gần nhất có định dạng MNV...
+        $stmt = $db->query("SELECT ma_nhan_su FROM users WHERE ma_nhan_su LIKE 'MNV%' ORDER BY id DESC LIMIT 1");
+        $lastUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $nextNum = 1; // Mặc định bắt đầu là 1
+        if ($lastUser && !empty($lastUser['ma_nhan_su'])) {
+            // Lấy phần số sau chữ 'MNV' (cắt bỏ 3 ký tự đầu)
+            $numPart = substr($lastUser['ma_nhan_su'], 3);
+            if (is_numeric($numPart)) {
+                $nextNum = (int)$numPart + 1;
+            }
+        }
+        // Tạo mã mới: MNV + số được đệm số 0 (ví dụ: 1 -> 01, 10 -> 10)
+        $data['ma_nhan_su'] = 'MNV' . str_pad($nextNum, 2, '0', STR_PAD_LEFT);
 
         $result = User::createWithRole($data);
 
         if (!$result) {
+            $saveOldInput();
             $_SESSION['error'] = 'Đăng ký thất bại, vui lòng thử lại';
             header('Location: ' . BASE_URL . '/register');
             exit;
         }
 
-
-        $_SESSION['success'] = 'Đăng ký thành công, vui lòng đăng nhập';
+        unset($_SESSION['old']); // Xóa dữ liệu cũ nếu thành công
+        $_SESSION['success'] = 'Đăng ký thành công, vui lòng chờ xét duyệt';
         header('Location: ' . BASE_URL . '/login');
     }
 

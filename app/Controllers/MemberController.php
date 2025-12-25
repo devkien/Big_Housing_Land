@@ -8,12 +8,21 @@ class MemberController extends Controller
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 10;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        
+        $status = null;
+        if (isset($_GET['status']) && $_GET['status'] !== 'all' && $_GET['status'] !== '') {
+            $s = $_GET['status'];
+            if ($s === 'hoạt động') $status = 1;
+            elseif ($s === 'tạm dừng') $status = 2;
+            elseif ($s === 'chờ duyệt') $status = 0;
+            else $status = (int)$s; // Fallback nếu truyền số trực tiếp
+        }
 
-        $total = User::countByRole('admin', $search);
+        $total = User::countByRole('admin', $search, $status);
         $pages = (int) ceil($total / $perPage);
         $offset = ($page - 1) * $perPage;
 
-        $users = User::getByRole('admin', $perPage, $offset, $search);
+        $users = User::getByRole('admin', $perPage, $offset, $search, $status);
 
         $this->view('superadmin/management-owner', [
             'users' => $users,
@@ -21,7 +30,8 @@ class MemberController extends Controller
             'pages' => $pages,
             'total' => $total,
             'perPage' => $perPage,
-            'search' => $search
+            'search' => $search,
+            'status' => $status
         ]);
     }
 
@@ -122,17 +132,20 @@ class MemberController extends Controller
             $data['ho_ten'] = trim($_POST['ho_ten'] ?? '');
             $data['so_dien_thoai'] = trim($_POST['so_dien_thoai'] ?? '');
             $data['email'] = trim($_POST['email'] ?? '');
-            $data['nam_sinh'] = trim($_POST['nam_sinh'] ?? null);
-            $data['so_cccd'] = trim($_POST['so_cccd'] ?? null);
+            $data['nam_sinh'] = trim($_POST['nam_sinh'] ?? '');
+            
+            // Nếu so_cccd rỗng thì gán bằng NULL để tránh lỗi Duplicate entry
+            $data['so_cccd'] = trim($_POST['so_cccd'] ?? '');
+            if ($data['so_cccd'] === '') $data['so_cccd'] = null;
+
             $data['phong_ban'] = trim($_POST['phong_ban'] ?? null);
             $data['ma_nhan_su'] = trim($_POST['ma_nhan_su'] ?? null);
             $data['ma_gioi_thieu'] = trim($_POST['ma_gioi_thieu'] ?? null);
             $data['link_fb'] = trim($_POST['link_fb'] ?? null);
             $data['dia_chi'] = trim($_POST['dia_chi'] ?? null);
             $data['quyen'] = trim($_POST['quyen'] ?? 'user');
-            // trang_thai: map from select value
-            $status = $_POST['trang_thai'] ?? null;
-            $data['trang_thai'] = ($status === 'Hoạt động') ? 1 : 0;
+            // Nhận giá trị trạng thái (0: Chờ duyệt, 1: Hoạt động, 2: Tạm dừng)
+            $data['trang_thai'] = isset($_POST['trang_thai']) ? (int)$_POST['trang_thai'] : 0;
 
             // Handle optional password change
             $newPassword = $_POST['password'] ?? '';

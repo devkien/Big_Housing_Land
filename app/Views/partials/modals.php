@@ -35,10 +35,8 @@
                     <option value="all">Tất cả</option>
                     <option value="hoạt động">Hoạt động</option>
                     <option value="tạm dừng">Tạm dừng</option>
+                    <option value="chờ duyệt">Chờ duyệt</option>
                 </select>
-            </label>
-            <label>Từ khóa (tên, SĐT, địa chỉ):
-                <input id="hr-filter-keyword" type="text" placeholder="Nhập từ khóa...">
             </label>
         </div>
         <div class="modal-actions" style="justify-content:center; margin-top:12px;">
