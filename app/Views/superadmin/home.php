@@ -12,15 +12,22 @@
 <body>
     <div class="app-container" style="background-color: #E8F4FF;">
 
+        <?php $prefix = ($_SESSION['user']['quyen'] ?? '') === 'admin' ? '/admin' : '/superadmin'; ?>
         <header class="home-header">
-            <form class="search-bar" action="<?= BASE_URL ?>/superadmin/management-resource" method="GET">
+            <form class="search-bar" action="<?= BASE_URL . $prefix ?>/management-resource" method="GET">
                 <input type="text" name="q" placeholder="Tìm kiếm mã tài nguyên...">
                 <button type="submit" style="border: none; background: transparent; padding: 0; cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
         </header>
 
         <section class="menu-section" id="menu-container">
-            <?php require_once __DIR__ . '/layouts/menu.php'; ?>
+            <?php 
+            if (($_SESSION['user']['quyen'] ?? '') === 'admin') {
+                require_once __DIR__ . '/../admin/layouts/menu.php';
+            } else {
+                require_once __DIR__ . '/layouts/menu.php';
+            }
+            ?>
         </section>
 
         <section class="banner-section">
@@ -43,7 +50,7 @@
                             $firstImg = htmlspecialchars($post['images'][0]['image_path']);
                         }
                 ?>
-                        <article class="news-card" onclick="window.location.href='<?= BASE_URL ?>/superadmin/internal-info-detail?id=<?= (int)$post['id'] ?>'" style="cursor:pointer;">
+                        <article class="news-card" onclick="window.location.href='<?= BASE_URL . $prefix ?>/internal-info-detail?id=<?= (int)$post['id'] ?>'" style="cursor:pointer;">
                             <div class="news-header">
                                 <img src="<?= BASE_URL ?>/icon/menuanhdaidien.png" class="avatar" />
                                 <div class="news-info">

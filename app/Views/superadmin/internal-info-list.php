@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thêm thông tin nội bộ</title>
+    <title>Quản lý thông tin nội bộ</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../Public/Css/style.css">
     <script src="../Public/Js/script.js"></script>
@@ -12,10 +12,13 @@
 
 <body>
     <div class="app-container" style="background: #f0f4f8;">
-
+        <?php
+        $userRole = $_SESSION['user']['quyen'] ?? 'user';
+        $prefix = ($userRole === 'super_admin') ? '/superadmin' : '/admin';
+        ?>
         <div class="header-blue-solid">
-            <a href="<?= BASE_URL ?>/superadmin/info" class="back-btn-white"><i class="fa-solid fa-chevron-left"></i></a>
-            Thêm thông tin nội bộ
+            <a href="<?= BASE_URL . $prefix ?>/info" class="back-btn-white"><i class="fa-solid fa-chevron-left"></i></a>
+            Quản lý thông tin nội bộ
         </div>
 
         <div style="background: white; min-height: calc(100vh - 130px);">
@@ -61,7 +64,7 @@
                                     <td class="title-cell"><?= htmlspecialchars(mb_strimwidth(strip_tags($p['tieu_de'] ?? ''), 0, 80, '...')) ?></td>
                                     <td><?= !empty($p['created_at']) ? date('m/d/Y', strtotime($p['created_at'])) : '' ?></td>
                                     <td style="padding-right: 15px; text-align: right;">
-                                        <a href="<?= BASE_URL ?>/superadmin/internal-info-edit?id=<?= (int)$p['id'] ?>"><i class="fa-solid fa-pen icon-edit-black"></i></a>
+                                        <a href="<?= BASE_URL . $prefix ?>/internal-info-edit?id=<?= (int)$p['id'] ?>"><i class="fa-solid fa-pen icon-edit-black"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -75,13 +78,28 @@
             </div>
 
             <div class="pagination-container" style="background: white; padding-top: 20px;">
-                <button class="page-btn nav-arrow-blue"><i class="fa-solid fa-chevron-left"></i></button>
-                <button class="page-btn active" style="background: #e6f0ff; border-color: #0044cc; color: #0044cc;">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn" style="border:none;">...</button>
-                <button class="page-btn">9</button>
-                <button class="page-btn">10</button>
-                <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                <?php
+                if (isset($pages) && $pages > 1) :
+                    $qs = [];
+                    if (!empty($search)) $qs['q'] = $search;
+                    $qsStr = !empty($qs) ? '&' . http_build_query($qs) : '';
+                ?>
+                    <?php if ($page > 1) : ?>
+                        <a class="page-btn nav-arrow-blue" href="<?= BASE_URL . $prefix ?>/internal-info-list?page=<?= $page - 1 ?><?= $qsStr ?>"><i class="fa-solid fa-chevron-left"></i></a>
+                    <?php endif; ?>
+
+                    <?php for ($i = 1; $i <= $pages; $i++) : ?>
+                        <?php if ($i == $page) : ?>
+                            <button class="page-btn active" style="background: #e6f0ff; border-color: #0044cc; color: #0044cc;"><?= $i ?></button>
+                        <?php else : ?>
+                            <a class="page-btn" href="<?= BASE_URL . $prefix ?>/internal-info-list?page=<?= $i ?><?= $qsStr ?>"><?= $i ?></a>
+                        <?php endif; ?>
+                    <?php endfor; ?>
+
+                    <?php if ($page < $pages) : ?>
+                        <a class="page-btn" href="<?= BASE_URL . $prefix ?>/internal-info-list?page=<?= $page + 1 ?><?= $qsStr ?>"><i class="fa-solid fa-chevron-right"></i></a>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
         <!-- Modal Xác nhận xóa -->

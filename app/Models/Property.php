@@ -24,6 +24,7 @@ class Property extends Model
                 chieu_rong,
                 so_tang,
                 gia_chao,
+                don_vi_gia,
                 trich_thuong_gia_tri,
                 trich_thuong_don_vi,
                 tinh_thanh,
@@ -33,7 +34,7 @@ class Property extends Model
                 trang_thai,
                 mo_ta,
                 is_visible
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
 
         // Ensure ma_hien_thi exists (DB requires non-null)
@@ -57,6 +58,7 @@ class Property extends Model
             $data['chieu_rong'] ?? null,
             $data['so_tang'] ?? null,
             isset($data['gia_chao']) ? $data['gia_chao'] : null,
+            $data['don_vi_gia'] ?? null,
             $data['trich_thuong_gia_tri'] ?? null,
             $data['trich_thuong_don_vi'] ?? null,
             $data['tinh_thanh'] ?? null,
