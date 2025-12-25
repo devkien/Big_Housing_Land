@@ -33,8 +33,16 @@
                                 <i class="fa-solid fa-star"></i>
                                 <i class="fa-solid fa-star"></i>
                                 <div class="contact-icons">
-                                    <i class="fa-brands fa-facebook-messenger c-icon icon-mess"></i>
-                                    <i class="fa-solid fa-z c-icon icon-zalo"></i> <i class="fa-solid fa-phone c-icon icon-phone"></i>
+                                    <?php
+                                    // Prepare contact links: prefer explicit links in $property, otherwise fallback to a contact route
+                                    $messengerLink = !empty($property['messenger_link']) ? $property['messenger_link'] : (isset($property['user_id']) ? BASE_URL . '/superadmin/contact?user=' . urlencode($property['user_id']) . '&via=messenger' : '#');
+                                    $zaloLink = !empty($property['zalo_link']) ? $property['zalo_link'] : (isset($property['user_id']) ? BASE_URL . '/superadmin/contact?user=' . urlencode($property['user_id']) . '&via=zalo' : '#');
+                                    $phoneNumber = $property['phone'] ?? $property['sdt'] ?? $property['user_phone'] ?? null;
+                                    $phoneLink = $phoneNumber ? 'tel:' . preg_replace('/[^0-9+]/', '', $phoneNumber) : (isset($property['user_id']) ? BASE_URL . '/superadmin/contact?user=' . urlencode($property['user_id']) . '&via=phone' : '#');
+                                    ?>
+                                    <a class="c-icon" href="<?= htmlspecialchars($messengerLink) ?>" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook-messenger icon-mess"></i></a>
+                                    <a class="c-icon" href="<?= htmlspecialchars($zaloLink) ?>" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-z icon-zalo"></i></a>
+                                    <a class="c-icon" href="<?= htmlspecialchars($phoneLink) ?>" <?= $phoneNumber ? '' : 'target="_blank"' ?> rel="noopener noreferrer"><i class="fa-solid fa-phone icon-phone"></i></a>
                                 </div>
                             </div>
                         </div>
@@ -119,10 +127,11 @@
                 </div>
 
                 <div class="meta-row">
-                    <?php if (!empty($property['ma_so_so'])): ?>
-                        <span class="red-badge">Số đỏ/sổ hồng</span>
+                    <?php if (isset($property['phap_ly']) && $property['phap_ly'] === 'co_so'): ?>
+                        <span class="red-badge">Sổ đỏ / Sổ hồng</span>
+                        <span class="code-text">Mã sổ: <span class="code-number"><?php echo htmlspecialchars($property['ma_so_so'] ?? '') ?></span></span>
                     <?php endif; ?>
-                    <span class="code-text">Mã số: <span class="code-number"><?php echo htmlspecialchars('#' . ($property['ma_hien_thi'] ?? $property['id'])) ?></span></span>
+                    <span class="code-text">Mã tin: <span class="code-number"><?php echo htmlspecialchars('#' . ($property['ma_hien_thi'] ?? $property['id'])) ?></span></span>
                 </div>
 
                 <?php

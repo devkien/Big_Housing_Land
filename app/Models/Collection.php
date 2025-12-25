@@ -55,7 +55,10 @@ class Collection extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public static function savePropertyToCollections(int $propertyId, array $collectionIds, int $userId)
+    // Save associations between a property/resource and multiple collections belonging to $userId.
+    // Uses `resource_id` and `resource_type` columns (DB schema).
+    // Returns number of inserted rows on success, or false on error.
+    public static function savePropertyToCollections(int $propertyId, array $collectionIds, int $userId, string $resourceType = 'bat_dong_san')
     {
         $db = self::db();
         try {
@@ -66,38 +69,45 @@ class Collection extends Model
             $stmt->execute([$userId]);
             $ownedCollectionIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
             if (empty($ownedCollectionIds)) {
-                $db->rollBack();
-                return true;
+                // nothing to do
+                $db->commit();
+                return 0;
             }
 
             // 2. Delete all old associations for this property within the user's collections
             $ownedPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
-            $delStmt = $db->prepare("DELETE FROM collection_items WHERE property_id = ? AND collection_id IN ($ownedPlaceholders)");
+            $delStmt = $db->prepare("DELETE FROM collection_items WHERE resource_id = ? AND collection_id IN ($ownedPlaceholders) AND resource_type = ?");
             $delParams = array_merge([$propertyId], $ownedCollectionIds);
+            // append resource_type at end for prepared statement
+            $delParams[] = $resourceType;
             $delStmt->execute($delParams);
 
             // 3. Insert new associations, but only for collections the user owns.
-            $validCollectionIds = array_intersect($collectionIds, $ownedCollectionIds);
+            $validCollectionIds = array_values(array_intersect($collectionIds, $ownedCollectionIds));
 
+            $inserted = 0;
             if (!empty($validCollectionIds)) {
-                $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, property_id) VALUES (?, ?)");
+                $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at) VALUES (?, ?, ?, NOW())");
                 foreach ($validCollectionIds as $cid) {
-                    $insStmt->execute([(int)$cid, $propertyId]);
+                    if ($insStmt->execute([(int)$cid, $propertyId, $resourceType])) {
+                        $inserted++;
+                    }
                 }
             }
 
             $db->commit();
-            return true;
+            return $inserted;
         } catch (Exception $e) {
             $db->rollBack();
             return false;
         }
     }
 
-    public static function getCollectionIdsForProperty(int $propertyId, int $userId)
+    // Return collection ids for a given resource regardless of resource_type.
+    public static function getCollectionIdsForProperty(int $propertyId, int $userId, string $resourceType = null)
     {
         $db = self::db();
-        $stmt = $db->prepare("SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.property_id = ? AND c.user_id = ?");
+        $stmt = $db->prepare("SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.resource_id = ? AND c.user_id = ?");
         $stmt->execute([$propertyId, $userId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
@@ -155,6 +165,49 @@ class Collection extends Model
         } catch (PDOException $e) {
             $msg = date('Y-m-d H:i:s') . " - Collection::deleteById error: " . $e->getMessage() . " Params: {\"id\":$id}\n";
             @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
+            return false;
+        }
+    }
+
+    // Backwards-compatible helper used by some tests/scripts: addItems(collectionIds, propertyId, resourceType)
+    public static function addItems(array $collectionIds, int $propertyId, $resourceType = null)
+    {
+        $db = self::db();
+        try {
+            $db->beginTransaction();
+            // remove existing links for this property and these collections to avoid duplicates
+            if (!empty($collectionIds)) {
+                $placeholders = implode(',', array_fill(0, count($collectionIds), '?'));
+                $delParams = array_merge([$propertyId], $collectionIds);
+                // append resource_type if provided
+                if ($resourceType) {
+                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE resource_id = ? AND collection_id IN ($placeholders) AND resource_type = ?");
+                    $delParams[] = $resourceType;
+                } else {
+                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE resource_id = ? AND collection_id IN ($placeholders)");
+                }
+                $delStmt->execute($delParams);
+            }
+
+            $inserted = 0;
+            if (!empty($collectionIds)) {
+                if ($resourceType) {
+                    $ins = $db->prepare("INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at) VALUES (?, ?, ?, NOW())");
+                    foreach ($collectionIds as $cid) {
+                        if ($ins->execute([(int)$cid, $propertyId, $resourceType])) $inserted++;
+                    }
+                } else {
+                    // fallback for legacy schema expecting property_id
+                    $ins = $db->prepare("INSERT INTO collection_items (collection_id, property_id, created_at) VALUES (?, ?, NOW())");
+                    foreach ($collectionIds as $cid) {
+                        if ($ins->execute([(int)$cid, $propertyId])) $inserted++;
+                    }
+                }
+            }
+            $db->commit();
+            return $inserted;
+        } catch (Exception $e) {
+            $db->rollBack();
             return false;
         }
     }

@@ -13,6 +13,9 @@
     <script>
         window.BASE_PATH = '<?= BASE_PATH ?>';
     </script>
+    <script>
+        window.CURRENT_RESOURCE_TYPE = 'kho_cho_thue';
+    </script>
 </head>
 
 <body>
@@ -35,15 +38,27 @@
         </div>
 
         <div class="table-wrapper" style="margin-bottom: 0;">
-            <table class="resource-table" style="min-width: 800px;">
+            <table class="resource-table" style="min-width:1400px;">
                 <thead>
                     <tr>
                         <th style="padding-left:15px; width: 60px;">LƯU</th>
                         <th style="width: 60px;">GHI CHÚ</th>
-                        <th style="width: 100px;">MÃ TÀI NGUYÊN</th>
+                        <th style="width: 120px;">MÃ HIỂN THỊ</th>
                         <th style="width: 100px;">THỜI GIAN</th>
-                        <th style="width: 120px;">HIỆN TRẠNG</th>
-                        <th>ĐỊA CHỈ</th>
+                        <th style="width: 100px;">PHÒNG BAN</th>
+                        <th style="width: 240px;">TIÊU ĐỀ</th>
+                        <th style="width: 100px;">LOẠI BĐS</th>
+                        <th style="width: 100px;">LOẠI KHO</th>
+                        <th style="width: 80px;">CÓ SỔ</th>
+                        <th style="width: 120px;">MÃ SỔ</th>
+                        <th style="width:100px;">DIỆN TÍCH</th>
+                        <th style="width:80px">ĐV</th>
+                        <th style="width:90px">CHIỀU DÀI</th>
+                        <th style="width:90px">CHIỀU RỘNG</th>
+                        <th style="width:80px">SỐ TẦNG</th>
+                        <th style="width:140px; text-align:right; padding-right:15px;">GIÁ CHÀO</th>
+                        <th style="width:120px;">HIỆN TRẠNG</th>
+                        <th style="text-align:right; padding-right:15px;">ĐỊA CHỈ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,7 +75,7 @@
                     if (empty($properties)) :
                     ?>
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
+                            <td colspan="18" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
                         </tr>
                         <?php else :
                         foreach ($properties as $p) :
@@ -75,19 +90,47 @@
                                 $address = htmlspecialchars($address);
                             }
                         ?>
+                            <?php
+                            $phong_ban = htmlspecialchars($p['phong_ban'] ?? '');
+                            $tieu_de = htmlspecialchars($p['tieu_de'] ?? '');
+                            $loai_bds_map = ['ban' => 'Bán', 'cho_thue' => 'Cho thuê'];
+                            $loai_bds = $loai_bds_map[$p['loai_bds'] ?? ''] ?? ($p['loai_bds'] ?? '');
+                            $loai_kho_map = ['kho_nha_dat' => 'Kho nhà đất', 'kho_cho_thue' => 'Kho cho thuê'];
+                            $loai_kho = $loai_kho_map[$p['loai_kho'] ?? ''] ?? ($p['loai_kho'] ?? '');
+                            $phap_ly_map = ['co_so' => 'Có sổ', 'khong_so' => 'Không sổ'];
+                            $phap_ly = $phap_ly_map[$p['phap_ly'] ?? ''] ?? ($p['phap_ly'] ?? '');
+                            $ma_so_so = htmlspecialchars($p['ma_so_so'] ?? '');
+                            $dien_tich = isset($p['dien_tich']) && $p['dien_tich'] !== null ? (float)$p['dien_tich'] : null;
+                            $don_vi = htmlspecialchars($p['don_vi_dien_tich'] ?? '');
+                            $chieu_dai = isset($p['chieu_dai']) && $p['chieu_dai'] !== null ? (float)$p['chieu_dai'] : null;
+                            $chieu_rong = isset($p['chieu_rong']) && $p['chieu_rong'] !== null ? (float)$p['chieu_rong'] : null;
+                            $so_tang = isset($p['so_tang']) && $p['so_tang'] !== null ? (int)$p['so_tang'] : null;
+                            $gia_chao = isset($p['gia_chao']) && $p['gia_chao'] !== null ? (float)$p['gia_chao'] : null;
+                            $gia_chao_fmt = $gia_chao !== null ? number_format($gia_chao, 0, ',', '.') . ' VND' : '';
+                            ?>
                             <tr data-id="<?= htmlspecialchars($p['id']) ?>">
-                                <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                                <?php $inCount = isset($collectionMap[(int)$p['id']]) ? (int)$collectionMap[(int)$p['id']] : 0; ?>
+                                <td style="padding-left:15px;">
+                                    <i class="<?= $inCount > 0 ? 'fa-solid' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i>
+                                </td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
-                                <td onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
-                                <td>
-                                    <?= $created ?>
-                                </td>
-                                <td><span class="status-badge strong">
-                                        <?= htmlspecialchars($status) ?>
-                                    </span></td>
-                                <td style=" padding-right:15px;">
-                                    <?= $address ?>
-                                </td>
+                                <td style="cursor:pointer; color:#0b66ff;" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
+                                <td><?= $created ?></td>
+                                <td><?= $phong_ban ?></td>
+                                <td><?= $tieu_de ?></td>
+                                <td><?= htmlspecialchars($loai_bds) ?></td>
+                                <td><?= htmlspecialchars($loai_kho) ?></td>
+                                <td><?= htmlspecialchars($phap_ly) ?></td>
+                                <td><?= $ma_so_so ?></td>
+                                <td><?= $dien_tich !== null ? rtrim(rtrim(number_format($dien_tich, 2, ',', '.'), '0'), ',') : '' ?></td>
+                                <td><?= $don_vi ?></td>
+                                <td><?= $chieu_dai !== null ? rtrim(rtrim(number_format($chieu_dai, 2, ',', '.'), '0'), ',') : '' ?></td>
+                                <td><?= $chieu_rong !== null ? rtrim(rtrim(number_format($chieu_rong, 2, ',', '.'), '0'), ',') : '' ?></td>
+                                <td><?= $so_tang !== null ? (int)$so_tang : '' ?></td>
+                                <td style="text-align:right; padding-right:15px;"><?= htmlspecialchars($gia_chao_fmt) ?></td>
+                                <?php $statusKey = htmlspecialchars($p['trang_thai'] ?? ''); ?>
+                                <td><span class="status-badge strong <?= $statusKey ? 'status-badge--' . $statusKey : '' ?>"><?= htmlspecialchars($status) ?></span></td>
+                                <td style="text-align:right; padding-right:15px;"><?= $address ?></td>
                             </tr>
                     <?php
                         endforeach;
@@ -221,6 +264,7 @@
                     qsa('#save-collection-modal input[type=checkbox]').forEach(function(cb) {
                         cb.checked = false;
                     });
+                    if (modal) modal.setAttribute('data-property-id', currentPropertyId || '');
                     modal.style.display = 'block';
                 });
             });
@@ -274,14 +318,14 @@
                                     }
                                 }
                             });
-                            alert('Lưu vào bộ sưu tập thành công. Đã thêm: ' + (json.added || 0));
+                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công.');
                         } else {
-                            alert('Lỗi: ' + (json.message || 'Không xác định'));
+                            window.showAlert('error', 'Lỗi: ' + (json.message || 'Không xác định'));
                         }
                         modal.style.display = 'none';
                     }).catch(function(err) {
                         console.error(err);
-                        alert('Lỗi khi kết nối server');
+                        window.showAlert('error', 'Lỗi khi kết nối server');
                         modal.style.display = 'none';
                     });
                 });

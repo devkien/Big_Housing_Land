@@ -189,6 +189,16 @@ class Property extends Model
         return (int)$stmt->fetchColumn();
     }
 
+    // Find a single property by its visible code `ma_hien_thi`
+    public static function findByMaHienThi(string $ma)
+    {
+        $db = self::db();
+        $stmt = $db->prepare("SELECT * FROM properties WHERE ma_hien_thi = ? LIMIT 1");
+        $stmt->execute([$ma]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     // Find a single property by its primary id
     public static function findById(int $id)
     {
