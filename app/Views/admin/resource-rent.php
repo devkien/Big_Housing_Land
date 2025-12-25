@@ -34,7 +34,7 @@
         </div>
 
         <div class="toolbar-section">
-            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>    
+            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
             <div style="flex:1;"></div>
         </div>
 
@@ -70,7 +70,8 @@
                         foreach ($properties as $p) :
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $statusKey = $p['trang_thai'] ?? '';
+                            $status = $statusMap[$statusKey] ?? ($statusKey ?: '');
                             $address = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($address === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -89,7 +90,7 @@
                                 <td>
                                     <?= $created ?>
                                 </td>
-                                <td><span class="status-badge strong">
+                                <td><span class="status-badge strong status-badge--<?= htmlspecialchars($statusKey) ?>">
                                         <?= htmlspecialchars($status) ?>
                                     </span></td>
                                 <td style=" padding-right:15px;">
@@ -116,9 +117,9 @@
             <?php if ($page > 1): ?>
                 <a href="<?= BASE_URL ?>/admin/management-resource-rent?page=<?= $page - 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
             <?php endif; ?>
-            
+
             <a href="#" class="page-link active"><?= $page ?> / <?= $pages > 0 ? $pages : 1 ?></a>
-            
+
             <?php if ($page < $pages): ?>
                 <a href="<?= BASE_URL ?>/admin/management-resource-rent?page=<?= $page + 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
             <?php endif; ?>
@@ -274,34 +275,34 @@
                 saveStatusBtn.addEventListener('click', () => {
                     if (!currentPropertyId) return;
                     const newStatus = document.getElementById('edit-status-select').value;
-                    
+
                     const formData = new FormData();
                     formData.append('id', currentPropertyId);
                     formData.append('status', newStatus);
 
                     fetch('<?= BASE_URL ?>/admin/update-resource-status', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
-                            throw new Error('Lỗi server: ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            alert('Cập nhật trạng thái thành công!');
-                            location.reload();
-                        } else {
-                            alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Lỗi: ' + error.message);
-                    });
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
+                                throw new Error('Lỗi server: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                alert('Cập nhật trạng thái thành công!');
+                                location.reload();
+                            } else {
+                                alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Lỗi: ' + error.message);
+                        });
                 });
             }
 
@@ -321,13 +322,13 @@
                 applyFilter.addEventListener('click', () => {
                     const status = document.getElementById('filter-status').value;
                     const address = document.getElementById('filter-address').value;
-                    
+
                     const url = new URL('<?= BASE_URL ?>/admin/management-resource-rent', window.location.origin);
                     url.searchParams.set('page', '1'); // Reset to first page on new filter
 
                     if (status && status !== 'all') url.searchParams.set('status', status);
                     if (address) url.searchParams.set('address', address);
-                    
+
                     window.location.href = url.toString();
                 });
             }
@@ -335,12 +336,12 @@
             if (applySearch) {
                 applySearch.addEventListener('click', () => {
                     const search = document.getElementById('search-input').value;
-                    
+
                     const url = new URL('<?= BASE_URL ?>/admin/management-resource-rent', window.location.origin);
                     url.searchParams.set('page', '1');
 
                     if (search) url.searchParams.set('q', search);
-                    
+
                     window.location.href = url.toString();
                 });
             }

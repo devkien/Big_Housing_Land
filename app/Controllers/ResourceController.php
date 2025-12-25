@@ -243,6 +243,30 @@ class ResourceController extends Controller
         require_once __DIR__ . '/../Models/Collection.php';
         $collections = Collection::allWithCount();
 
+        // Prepare mapping of property id => number of collections containing it
+        $collectionMap = [];
+        try {
+            $db = \Database::connect();
+            $ids = array_filter(array_map(function ($x) {
+                return isset($x['id']) ? (int)$x['id'] : 0;
+            }, $properties));
+            if (!empty($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                // count across any resource_type (some existing rows may use different resource_type values)
+                $sql = "SELECT resource_id, COUNT(*) AS cnt FROM collection_items WHERE resource_id IN ($placeholders) GROUP BY resource_id";
+                $params = $ids;
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $r) {
+                    $collectionMap[(int)$r['resource_id']] = (int)$r['cnt'];
+                }
+            }
+        } catch (Exception $e) {
+            // ignore silently; view will default to no collections
+            $collectionMap = [];
+        }
+
         $this->view('superadmin/resource', [
             'properties' => $properties,
             'page' => $page,
@@ -252,7 +276,8 @@ class ResourceController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -274,6 +299,29 @@ class ResourceController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
+        // map for collection counts for rent resources
+        $collectionMap = [];
+        try {
+            $db = \Database::connect();
+            $ids = array_filter(array_map(function ($x) {
+                return isset($x['id']) ? (int)$x['id'] : 0;
+            }, $properties));
+            if (!empty($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                // count across any resource_type for rent resources as well
+                $sql = "SELECT resource_id, COUNT(*) AS cnt FROM collection_items WHERE resource_id IN ($placeholders) GROUP BY resource_id";
+                $params = $ids;
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $r) {
+                    $collectionMap[(int)$r['resource_id']] = (int)$r['cnt'];
+                }
+            }
+        } catch (Exception $e) {
+            $collectionMap = [];
+        }
+
         $this->view('superadmin/resource-rent', [
             'properties' => $properties,
             'page' => $page,
@@ -287,7 +335,8 @@ class ResourceController extends Controller
             'collections' => (function () {
                 require_once __DIR__ . '/../Models/Collection.php';
                 return Collection::allWithCount();
-            })()
+            })(),
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -354,6 +403,7 @@ class ResourceController extends Controller
 
         $propertyId = (int)$data['property_id'];
         $collections = is_array($data['collections']) ? $data['collections'] : [];
+        $resourceType = isset($data['resource_type']) ? trim($data['resource_type']) : 'bat_dong_san';
 
         if ($propertyId <= 0 || empty($collections)) {
             @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Invalid params: property_id={$propertyId}, collections=" . json_encode($collections) . "\n", FILE_APPEND);
@@ -364,10 +414,18 @@ class ResourceController extends Controller
 
         require_once __DIR__ . '/../Models/Collection.php';
 
-        $added = Collection::addItems($collections, $propertyId, 'bat_dong_san');
-        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Added count: {$added}\n", FILE_APPEND);
+        // For superadmin flow, allow adding into any collection ids provided by the client.
+        // Use the compatibility wrapper added to Collection::addItems which simply inserts records.
+        $added = Collection::addItems($collections, $propertyId, $resourceType);
+        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - addItems result: " . json_encode($added) . "\n", FILE_APPEND);
 
-        echo json_encode(['ok' => true, 'added' => $added]);
+        if ($added === false) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'Database error']);
+            return;
+        }
+
+        echo json_encode(['ok' => true, 'added' => (int)$added]);
     }
 
     // AJAX handler to update property status
