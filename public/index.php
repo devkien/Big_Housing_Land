@@ -212,11 +212,13 @@ $router->post('/superadmin/save-to-collections', 'ResourceController@saveToColle
 
 // Collection management routes
 $router->get('/superadmin/collection', 'CollectionController@collection', 'role:super_admin');
+$router->get('/superadmin/collection-detail', 'CollectionController@collectionDetail', 'role:super_admin');
 $router->get('/superadmin/cre-collection', 'CollectionController@creCollection', 'role:super_admin');
 $router->post('/superadmin/cre-collection', 'CollectionController@creCollection', 'role:super_admin');
 // AJAX endpoints for collection management
 $router->post('/superadmin/collection-rename', 'CollectionController@renameCollection', 'role:super_admin');
 $router->post('/superadmin/collection-delete', 'CollectionController@deleteCollection', 'role:super_admin');
+$router->post('/superadmin/collection-remove-item', 'CollectionController@removeItem', 'role:super_admin');
 
 $router->get('/superadmin/auto-match', 'AutoMatchController@index', 'role:super_admin');
 $router->post('/superadmin/auto-match', 'AutoMatchController@autoMatch', 'role:super_admin');

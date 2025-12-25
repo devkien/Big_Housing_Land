@@ -6,7 +6,7 @@
 <div id="delete-modal" class="modal">
     <div class="modal-content">
         <h3 style="margin-bottom: 15px; font-size: 16px; text-align: center;">Xác nhận xóa</h3>
-        <p style="text-align: center; margin-bottom: 20px; font-size: 13px;">Bạn có chắc chắn muốn xóa nhân sự này không?</p>
+        <p id="delete-modal-message" style="text-align: center; margin-bottom: 20px; font-size: 13px;">Bạn có chắc chắn muốn xóa mục này không?</p>
         <div class="modal-actions" style="justify-content: center;">
             <button id="confirm-delete-btn" class="btn-save btn-danger" style="background-color: #ff3333; margin: 0; width: auto; padding: 10px 30px;">Xóa</button>
             <button id="cancel-delete-btn" class="btn-cancel">Hủy</button>

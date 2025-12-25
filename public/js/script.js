@@ -195,6 +195,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const saveIcons = document.querySelectorAll('.icon-save');
     saveIcons.forEach(icon => {
         icon.addEventListener('click', function (e) {
+            // If this icon already represents a saved item, do not intercept the click here.
+            // Let page-specific handlers (e.g., collection-detail) handle delete confirmation.
+            if (this.classList.contains('saved')) return;
+            // For non-saved icons, stop propagation so the row click doesn't navigate away.
             e.stopPropagation(); // Ngăn chặn sự kiện click của dòng (chuyển trang)
             currentIconToSave = this;
             if (saveCollectionModal) {
