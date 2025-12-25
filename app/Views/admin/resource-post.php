@@ -29,14 +29,15 @@
 
                 <div class="form-section-title">Người đăng</div>
                 <div class="form-group">
-                    <input type="text" name="ho_ten" class="form-input focus-blue" value="<?= htmlspecialchars(\Auth::user()['ho_ten'] ?? 'Họ tên đầu chủ', ENT_QUOTES, 'UTF-8') ?>">
+                    <?php $currentName = \Auth::user()['ho_ten'] ?? ''; ?>
+                    <input type="text" name="ho_ten" class="form-input focus-blue" value="<?= htmlspecialchars($currentName ?: 'Họ tên đầu chủ', ENT_QUOTES, 'UTF-8') ?>" <?= $currentName ? 'readonly' : '' ?>>
                 </div>
                 <div class="form-group">
                     <select class="form-input" name="phong_ban">
                         <option value="">Chọn Phòng Ban</option>
-                        <option value="kd1">Thiện Chiến</option>
-                        <option value="kd2">Hùng Phát</option>
-                        <option value="tc">Tinh Nhuệ</option>
+                        <option value="thien_chien">Thiện Chiến</option>
+                        <option value="hung_phat">Hùng Phát</option>
+                        <option value="tinh_nhue">Tinh Nhuệ</option>
                     </select>
                 </div>
 
@@ -63,14 +64,13 @@
                 </div>
                 <div class="form-group" id="ma-so-so-group" style="display: none;">
                     <input type="text" name="ma_so_so" class="form-input" placeholder="Mã số sổ (nhập nếu có)">
-                    <span class="fake-placeholder">Mã số sổ</span>
                 </div>
-                <div class="form-section-title">Diện tích & giá</div>
+                <div class="form-section-title">Diện tích & giá <span class="required-star">*</span></div>
 
                 <div class="form-group input-with-unit">
                     <div style="position: relative; flex: 1;">
                         <input type="number" name="dien_tich" step="any" class="form-input" placeholder=" " required>
-                        <span class="fake-placeholder">Diện tích đất <span class="required-star">*</span></span>
+                        <span class="fake-placeholder">Diện tích đất</span>
                     </div>
                     <select name="don_vi_dien_tich" class="unit-select">
                         <option>m²</option>
@@ -109,16 +109,22 @@
                         <input type="number" name="gia_chao" step="any" class="form-input" placeholder=" ">
                         <span class="fake-placeholder">Giá chào</span>
                     </div>
+                    <select name="don_vi_gia" class="unit-select">
+                        <option value="nguyen_can">Nguyên căn</option>
+                        <option value="m2">m²</option>
+                    </select>
+                </div>
+
+                <div class="form-group input-with-unit">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" name="trich_thuong_gia_tri" class="form-input" placeholder=" ">
+                        <span class="fake-placeholder">Trích thưởng</span>
+                    </div>
                     <select name="trich_thuong_don_vi" class="unit-select">
                         <option>%</option>
                         <option>VND</option>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <input type="text" name="trich_thuong_gia_tri" class="form-input" placeholder="Trích thưởng">
-                </div>
-
                 <div class="form-section-title">Địa chỉ</div>
                 <div class="form-group" style="position: relative;">
                     <select id="select-province" name="tinh_thanh" class="form-input" required>

@@ -109,16 +109,22 @@
                         <input type="number" name="gia_chao" step="any" class="form-input" placeholder=" ">
                         <span class="fake-placeholder">Giá chào</span>
                     </div>
+                    <select name="don_vi_gia" class="unit-select">
+                        <option value="nguyen_can">Nguyên căn</option>
+                        <option value="m2">m²</option>
+                    </select>
+                </div>
+
+                <div class="form-group input-with-unit">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" name="trich_thuong_gia_tri" class="form-input" placeholder=" ">
+                        <span class="fake-placeholder">Trích thưởng</span>
+                    </div>
                     <select name="trich_thuong_don_vi" class="unit-select">
                         <option>%</option>
                         <option>VND</option>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <input type="text" name="trich_thuong_gia_tri" class="form-input" placeholder="Trích thưởng">
-                </div>
-
                 <div class="form-section-title">Địa chỉ</div>
                 <div class="form-group" style="position: relative;">
                     <select id="select-province" name="tinh_thanh" class="form-input" required>
