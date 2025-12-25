@@ -35,8 +35,8 @@
             </a>
         </div>
 
-        <div class="table-wrapper" style="margin-bottom: 0;">
-            <table class="hr-table">
+        <div class="table-wrapper" style="margin-bottom: 0; overflow-x: auto;">
+            <table class="hr-table" style="min-width: 1000px;">
                 <thead>
                     <tr>
                         <th style="padding-left:10px; width: 40px;">XOÁ</th>
@@ -44,6 +44,7 @@
                         <th>TRẠNG THÁI</th>
                         <th>HỌ TÊN</th>
                         <th>SĐT</th>
+                        <th>VỊ TRÍ</th>
                         <th style="padding-right:10px;">ĐỊA CHỈ</th>
                     </tr>
                 </thead>
@@ -67,6 +68,12 @@
                                 $statusClass = 'status-pause';
                                 $statusText = 'Chờ duyệt';
                             }
+
+                            $viTriVal = isset($u['vi_tri']) && $u['vi_tri'] !== '' ? (int)$u['vi_tri'] : null;
+                            $viTriText = '';
+                            if ($viTriVal === 0) $viTriText = 'Kho nhà đất';
+                            elseif ($viTriVal === 1) $viTriText = 'Kho nhà cho thuê';
+                            elseif ($viTriVal === 2) $viTriText = 'Kho nhà đất và cho thuê';
                         ?>
                             <tr>
                                 <td style="padding-left:10px; text-align: center;">
@@ -87,6 +94,7 @@
                                 <td class="<?= $statusClass ?>"><?= $statusText ?></td>
                                 <td><?= htmlspecialchars($u['ho_ten'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($u['so_dien_thoai'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($viTriText) ?></td>
                                 <td style="padding-right:10px;"><?= htmlspecialchars($u['dia_chi'] ?? '') ?></td>
                             </tr>
                     <?php endforeach;

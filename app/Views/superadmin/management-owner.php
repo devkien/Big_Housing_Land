@@ -35,8 +35,8 @@
             </a>
         </div>
 
-        <div class="table-wrapper" style="margin-bottom: 0;">
-            <table class="hr-table">
+        <div class="table-wrapper" style="margin-bottom: 0; overflow-x: auto;">
+            <table class="hr-table" style="min-width: 1000px;">
                 <thead>
                     <tr>
                         <th style="padding-left:10px; width: 40px;">XOÁ</th>
