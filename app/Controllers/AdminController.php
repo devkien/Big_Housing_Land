@@ -593,7 +593,7 @@ class AdminController extends Controller
         }
 
         $db = \Database::connect();
-        
+
         // Lấy thông tin bất động sản và người đăng
         $sql = "SELECT p.*, u.ho_ten as user_name, u.so_dien_thoai as user_phone, u.avatar as user_avatar, u.phong_ban 
                 FROM properties p 
@@ -604,8 +604,8 @@ class AdminController extends Controller
         $property = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$property) {
-             header('Location: ' . BASE_URL . '/admin/management-resource');
-             exit;
+            header('Location: ' . BASE_URL . '/admin/management-resource');
+            exit;
         }
 
         // Lấy hình ảnh/media
@@ -614,10 +614,10 @@ class AdminController extends Controller
         if (method_exists('Property', 'getMedia')) {
             $media = Property::getMedia($id);
         } else {
-             $sqlMedia = "SELECT * FROM property_media WHERE property_id = :id";
-             $stmtMedia = $db->prepare($sqlMedia);
-             $stmtMedia->execute([':id' => $id]);
-             $media = $stmtMedia->fetchAll(PDO::FETCH_ASSOC);
+            $sqlMedia = "SELECT * FROM property_media WHERE property_id = :id";
+            $stmtMedia = $db->prepare($sqlMedia);
+            $stmtMedia->execute([':id' => $id]);
+            $media = $stmtMedia->fetchAll(PDO::FETCH_ASSOC);
         }
         $property['media'] = $media;
 
@@ -638,14 +638,16 @@ class AdminController extends Controller
                     $db->beginTransaction();
 
                     // 1. Xóa tất cả các liên kết cũ của tài nguyên này
-                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE property_id = ?");
-                    $delStmt->execute([$propertyId]);
+                    // Use resource_id/resource_type columns to match DB schema
+                    $resourceType = $_POST['resource_type'] ?? 'bat_dong_san';
+                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE resource_id = ? AND resource_type = ?");
+                    $delStmt->execute([$propertyId, $resourceType]);
 
                     // 2. Thêm lại các liên kết mới được chọn
                     if (!empty($collectionIds)) {
-                        $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, property_id) VALUES (?, ?)");
+                        $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, resource_id, resource_type, created_at) VALUES (?, ?, ?, NOW())");
                         foreach ($collectionIds as $cid) {
-                            $insStmt->execute([(int)$cid, $propertyId]);
+                            $insStmt->execute([(int)$cid, $propertyId, $resourceType]);
                         }
                     }
 
@@ -669,7 +671,8 @@ class AdminController extends Controller
         if ($id) {
             $db = \Database::connect();
             try {
-                $stmt = $db->prepare("SELECT collection_id FROM collection_items WHERE property_id = ?");
+                // Return collection ids for this resource regardless of resource_type
+                $stmt = $db->prepare("SELECT collection_id FROM collection_items WHERE resource_id = ?");
                 $stmt->execute([$id]);
                 $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
                 echo json_encode(['success' => true, 'collection_ids' => $ids]);
@@ -1170,7 +1173,7 @@ class AdminController extends Controller
 
         // Kiểm tra request JSON hay Form thường
         $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-                  (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
+            (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
 
         // Validate Token
         if (!verify_csrf($token)) {
@@ -1204,12 +1207,12 @@ class AdminController extends Controller
             // Bắt lỗi SQL (ví dụ: lỗi khóa ngoại chưa xóa ảnh)
             $ok = false;
             // Ghi log lỗi nếu cần: error_log($e->getMessage());
-            
+
             // Nếu là JSON, trả về lỗi chi tiết để hiển thị lên màn hình
             if ($isJson) {
                 http_response_code(500); // Báo lỗi server
                 echo json_encode([
-                    'ok' => false, 
+                    'ok' => false,
                     'message' => 'Lỗi Server: ' . $e->getMessage() // Quan trọng: Xem lỗi gì ở đây
                 ]);
                 exit;
@@ -1351,7 +1354,7 @@ class AdminController extends Controller
 
         $this->view('admin/internal-info-edit', ['post' => $post]);
     }
-     public function termsService()
+    public function termsService()
     {
         $this->view('admin/terms-service');
     }
@@ -1368,5 +1371,4 @@ class AdminController extends Controller
     {
         $this->view('admin/payment-policy');
     }
-
 }

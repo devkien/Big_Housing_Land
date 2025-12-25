@@ -34,7 +34,7 @@ class MainController extends Controller
 
             $ten_khach = trim($_POST['ten_khach'] ?? '');
             $sdt_khach = trim($_POST['sdt_khach'] ?? '');
-            
+
             if (empty($ten_khach)) {
                 $_SESSION['error'] = 'Vui lòng nhập tên khách hàng.';
                 header('Location: ' . BASE_URL . '/profile');
@@ -62,7 +62,7 @@ class MainController extends Controller
 
                     $uploadDir = 'uploads/customers/' . $customerId . '/';
                     $absDir = __DIR__ . '/../../public/' . $uploadDir;
-                    
+
                     if (!is_dir($absDir)) {
                         mkdir($absDir, 0755, true);
                     }
@@ -73,7 +73,7 @@ class MainController extends Controller
                             $name = basename($files['name'][$i]);
                             $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
                             $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-                            
+
                             if (in_array($ext, $allowed)) {
                                 $newName = uniqid() . '.' . $ext;
                                 if (move_uploaded_file($tmpName, $absDir . $newName)) {
@@ -399,7 +399,7 @@ class MainController extends Controller
 
             $ten_khach = trim($_POST['ho_ten'] ?? '');
             $sdt_khach = trim($_POST['so_dien_thoai'] ?? '');
-            
+
             if (empty($ten_khach)) {
                 $_SESSION['error'] = 'Vui lòng nhập tên khách hàng.';
                 header('Location: ' . BASE_URL . '/report_list');
@@ -425,7 +425,7 @@ class MainController extends Controller
                     'note' => trim($_POST['ghi_chu_nguoi_dan'] ?? ''),
                     'status' => 'cho_duyet'
                 ];
-                
+
                 LeadReport::create($reportData);
 
                 // Xử lý upload ảnh
@@ -437,7 +437,7 @@ class MainController extends Controller
 
                     $uploadDir = 'uploads/customers/' . $customerId . '/';
                     $absDir = __DIR__ . '/../../public/' . $uploadDir;
-                    
+
                     if (!is_dir($absDir)) {
                         mkdir($absDir, 0755, true);
                     }
@@ -448,7 +448,7 @@ class MainController extends Controller
                             $name = basename($files['name'][$i]);
                             $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
                             $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-                            
+
                             if (in_array($ext, $allowed)) {
                                 $newName = uniqid() . '.' . $ext;
                                 if (move_uploaded_file($tmpName, $absDir . $newName)) {
@@ -482,7 +482,7 @@ class MainController extends Controller
         }
 
         $db = \Database::connect();
-        
+
         // Lấy thông tin bất động sản và người đăng
         $sql = "SELECT p.*, u.ho_ten as user_name, u.so_dien_thoai as user_phone, u.avatar as user_avatar, u.phong_ban 
                 FROM properties p 
@@ -493,8 +493,8 @@ class MainController extends Controller
         $property = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$property) {
-             header('Location: ' . BASE_URL . '/management-resource');
-             exit;
+            header('Location: ' . BASE_URL . '/management-resource');
+            exit;
         }
 
         // Lấy hình ảnh/media
@@ -570,7 +570,7 @@ class MainController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../Models/Collection.php';
             require_once __DIR__ . '/../../core/Auth.php';
-            
+
             $user = \Auth::user();
             $userId = $user['id'] ?? null;
             $name = isset($_POST['ten_bo_suu_tap']) ? trim($_POST['ten_bo_suu_tap']) : '';
@@ -580,7 +580,7 @@ class MainController extends Controller
             if (!empty($_FILES['anh_dai_dien']) && $_FILES['anh_dai_dien']['error'] === UPLOAD_ERR_OK) {
                 $uploadPath = __DIR__ . '/../../public/uploads/collections';
                 if (!is_dir($uploadPath)) @mkdir($uploadPath, 0755, true);
-                
+
                 $tmp = $_FILES['anh_dai_dien']['tmp_name'];
                 $ext = pathinfo($_FILES['anh_dai_dien']['name'], PATHINFO_EXTENSION);
                 $filename = uniqid('coll_') . '.' . $ext;
@@ -612,7 +612,7 @@ class MainController extends Controller
     {
         require_once __DIR__ . '/../Models/Collection.php';
         header('Content-Type: application/json');
-        
+
         $id = $_POST['id'] ?? 0;
         $name = $_POST['ten_bo_suu_tap'] ?? '';
         $ok = Collection::updateName((int)$id, $name);
@@ -679,7 +679,8 @@ class MainController extends Controller
         $userId = $user['id'] ?? 0;
 
         $propertyId = $_GET['id'] ?? 0;
-        $ids = Collection::getCollectionIdsForProperty((int)$propertyId, $userId);
+        $resourceType = $_GET['resource_type'] ?? 'bat_dong_san';
+        $ids = Collection::getCollectionIdsForProperty((int)$propertyId, $userId, $resourceType);
         echo json_encode(['success' => true, 'collection_ids' => $ids]);
         exit;
     }
@@ -756,7 +757,7 @@ class MainController extends Controller
             'filters' => ['type' => $type, 'location' => $location, 'price' => $price, 'legal' => $legal, 'area' => $area]
         ]);
     }
-   public function termsService()
+    public function termsService()
     {
         $this->view('main/terms-service');
     }

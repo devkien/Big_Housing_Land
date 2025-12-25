@@ -67,7 +67,8 @@
                             $itemCode = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             if (empty($itemCode)) $itemCode = '#' . htmlspecialchars($p['id'] ?? '');
                             $itemCreated = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $itemStatus = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $statusKey = $p['trang_thai'] ?? '';
+                            $itemStatus = $statusMap[$statusKey] ?? ($statusKey ?: '');
                             $itemAddress = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($itemAddress === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -81,7 +82,7 @@
                                 <td style="cursor: pointer;" class="action-cell-note" data-id="<?= $p['id'] ?>" data-status="<?= htmlspecialchars($p['trang_thai'] ?? '') ?>"><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td><?= $itemCode ?></td>
                                 <td><?= $itemCreated ?></td>
-                                <td><span class="status-badge strong"><?= htmlspecialchars($itemStatus) ?></span></td>
+                                <td><span class="status-badge strong status-badge--<?= htmlspecialchars($statusKey) ?>"><?= htmlspecialchars($itemStatus) ?></span></td>
                                 <td style="text-align:right; padding-right:15px;"><?= $itemAddress ?></td>
                             </tr>
                     <?php
@@ -103,9 +104,9 @@
             <?php if ($page > 1): ?>
                 <a href="<?= BASE_URL ?>/admin/management-resource?page=<?= $page - 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
             <?php endif; ?>
-            
+
             <a href="#" class="page-link active"><?= $page ?> / <?= $pages > 0 ? $pages : 1 ?></a>
-            
+
             <?php if ($page < $pages): ?>
                 <a href="<?= BASE_URL ?>/admin/management-resource?page=<?= $page + 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
             <?php endif; ?>
@@ -283,7 +284,7 @@
                         // Reset checkboxes
                         const checkboxes = saveCollectionModal.querySelectorAll('input[name="collection"]');
                         checkboxes.forEach(cb => cb.checked = false);
-                        
+
                         // Fetch các bộ sưu tập đã lưu của tài nguyên này
                         fetch('<?= BASE_URL ?>/admin/get-property-collections?id=' + currentPropertyId)
                             .then(r => {
@@ -291,10 +292,10 @@
                                 return r.json();
                             })
                             .then(data => {
-                                if(data.success && data.collection_ids) {
+                                if (data.success && data.collection_ids) {
                                     data.collection_ids.forEach(cid => {
                                         const cb = saveCollectionModal.querySelector(`input[name="collection"][value="${cid}"]`);
-                                        if(cb) cb.checked = true;
+                                        if (cb) cb.checked = true;
                                     });
                                 }
                             })
@@ -309,42 +310,42 @@
                 saveStatusBtn.addEventListener('click', () => {
                     if (!currentPropertyId) return;
                     const newStatus = document.getElementById('edit-status-select').value;
-                    
+
                     // Gửi request cập nhật lên server
                     const formData = new FormData();
                     formData.append('id', currentPropertyId);
                     formData.append('status', newStatus);
 
                     fetch('<?= BASE_URL ?>/admin/update-resource-status', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
-                            throw new Error('Lỗi server: ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            alert('Cập nhật trạng thái thành công!');
-                            location.reload();
-                        } else {
-                            alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Lỗi: ' + error.message);
-                    });
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
+                                throw new Error('Lỗi server: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                alert('Cập nhật trạng thái thành công!');
+                                location.reload();
+                            } else {
+                                alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Lỗi: ' + error.message);
+                        });
                 });
             }
 
             if (confirmSaveCollection) {
                 confirmSaveCollection.addEventListener('click', () => {
                     if (!currentPropertyId) return;
-                    
+
                     const selected = [];
                     saveCollectionModal.querySelectorAll('input[name="collection"]:checked').forEach(cb => {
                         selected.push(cb.value);
@@ -355,25 +356,25 @@
                     selected.forEach(id => formData.append('collection_ids[]', id));
 
                     fetch('<?= BASE_URL ?>/admin/add-to-collection', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(r => {
-                        if (!r.ok) throw new Error('Lỗi server: ' + r.status);
-                        return r.json();
-                    })
-                    .then(data => {
-                        if(data.success) {
-                            alert('Đã lưu vào bộ sưu tập!');
-                            if (saveCollectionModal) saveCollectionModal.style.display = 'none';
-                        } else {
-                            alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
-                        }
-                    })
-                    .catch(e => {
-                        console.error(e);
-                        alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại kết nối hoặc database.');
-                    });
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(r => {
+                            if (!r.ok) throw new Error('Lỗi server: ' + r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                alert('Đã lưu vào bộ sưu tập!');
+                                if (saveCollectionModal) saveCollectionModal.style.display = 'none';
+                            } else {
+                                alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error(e);
+                            alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại kết nối hoặc database.');
+                        });
                 });
             }
 
@@ -396,13 +397,13 @@
                 applyFilter.addEventListener('click', () => {
                     const status = document.getElementById('filter-status').value;
                     const address = document.getElementById('filter-address').value;
-                    
+
                     const url = new URL('<?= BASE_URL ?>/admin/management-resource', window.location.origin);
                     url.searchParams.set('page', '1'); // Reset to first page on new filter
 
                     if (status && status !== 'all') url.searchParams.set('status', status);
                     if (address) url.searchParams.set('address', address);
-                    
+
                     window.location.href = url.toString();
                 });
             }
@@ -410,12 +411,12 @@
             if (applySearch) {
                 applySearch.addEventListener('click', () => {
                     const search = document.getElementById('search-input').value;
-                    
+
                     const url = new URL('<?= BASE_URL ?>/admin/management-resource', window.location.origin);
                     url.searchParams.set('page', '1');
 
                     if (search) url.searchParams.set('search', search);
-                    
+
                     window.location.href = url.toString();
                 });
             }

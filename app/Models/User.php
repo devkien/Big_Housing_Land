@@ -27,9 +27,22 @@ class User extends Model
     public static function findById($id)
     {
         $db = self::db();
-        $stmt = $db->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+        // Include a calculated field `so_vu_chot` (closed deals count)
+        // Use a correlated subquery to avoid GROUP BY and ensure correct count.
+        $stmt = $db->prepare(
+            "SELECT u.*, (
+                SELECT COUNT(*) FROM deal_posts dp WHERE dp.user_id = u.id AND dp.trang_thai = 1
+            ) AS so_vu_chot
+            FROM users u
+            WHERE u.id = ?
+            LIMIT 1"
+        );
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user && !isset($user['so_vu_chot'])) {
+            $user['so_vu_chot'] = 0;
+        }
+        return $user;
     }
 
     public static function create($data)

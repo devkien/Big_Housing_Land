@@ -66,7 +66,8 @@
                         foreach ($properties as $p) :
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $statusKey = $p['trang_thai'] ?? '';
+                            $status = $statusMap[$statusKey] ?? ($statusKey ?: '');
                             $address = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($address === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -79,7 +80,7 @@
                                 <td style="padding-left:15px; cursor: pointer;" class="action-cell-save" data-id="<?= $p['id'] ?>" onclick="event.stopPropagation()"><i class="fa-regular fa-bookmark icon-save"></i></td>
                                 <td><?= $code ?></td>
                                 <td><?= $created ?></td>
-                                <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>
+                                <td><span class="status-badge strong status-badge--<?= htmlspecialchars($statusKey) ?>"><?= htmlspecialchars($status) ?></span></td>
                                 <td style="text-align:right; padding-right:15px;"><?= $address ?></td>
                             </tr>
                     <?php
@@ -187,89 +188,97 @@
         </div>
     </div>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const filterModal = document.getElementById('filter-modal');
-        const searchModal = document.getElementById('search-modal');
-        const saveCollectionModal = document.getElementById('save-collection-modal');
-        
-        const btnFilter = document.getElementById('btn-filter');
-        const closeFilter = document.getElementById('close-filter');
-        const closeSearch = document.getElementById('close-search');
-        const closeSaveCollection = document.getElementById('close-save-collection');
-        const confirmSaveBtn = document.getElementById('confirm-save-collection');
-        
-        const cellSaves = document.querySelectorAll('.action-cell-save');
-        let currentPropertyId = null;
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterModal = document.getElementById('filter-modal');
+            const searchModal = document.getElementById('search-modal');
+            const saveCollectionModal = document.getElementById('save-collection-modal');
 
-        if (btnFilter) btnFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'flex'; });
-        if (closeFilter) closeFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'none'; });
-        if (closeSearch) closeSearch.addEventListener('click', () => { if(searchModal) searchModal.style.display = 'none'; });
-        if (closeSaveCollection) closeSaveCollection.addEventListener('click', () => { if(saveCollectionModal) saveCollectionModal.style.display = 'none'; });
+            const btnFilter = document.getElementById('btn-filter');
+            const closeFilter = document.getElementById('close-filter');
+            const closeSearch = document.getElementById('close-search');
+            const closeSaveCollection = document.getElementById('close-save-collection');
+            const confirmSaveBtn = document.getElementById('confirm-save-collection');
 
-        // Xử lý click nút Lưu trên mỗi dòng
-        cellSaves.forEach(cell => {
-            cell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                currentPropertyId = cell.getAttribute('data-id');
-                
-                const checkboxes = saveCollectionModal.querySelectorAll('input[name="collection"]');
-                checkboxes.forEach(cb => cb.checked = false);
+            const cellSaves = document.querySelectorAll('.action-cell-save');
+            let currentPropertyId = null;
 
-                // Fetch các bộ sưu tập đã lưu của tài nguyên này
-                fetch('<?= BASE_URL ?>/get-property-collections?id=' + currentPropertyId)
-                    .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
-                    .then(data => {
-                        if(data.success && data.collection_ids) {
-                            data.collection_ids.forEach(cid => {
-                                const cb = saveCollectionModal.querySelector(`input[name="collection"][value="${cid}"]`);
-                                if(cb) cb.checked = true;
-                            });
-                        }
-                    })
-                    .catch(e => console.error('Lỗi tải bộ sưu tập:', e))
-                    .finally(() => {
-                        if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
-                    });
+            if (btnFilter) btnFilter.addEventListener('click', () => {
+                if (filterModal) filterModal.style.display = 'flex';
             });
-        });
+            if (closeFilter) closeFilter.addEventListener('click', () => {
+                if (filterModal) filterModal.style.display = 'none';
+            });
+            if (closeSearch) closeSearch.addEventListener('click', () => {
+                if (searchModal) searchModal.style.display = 'none';
+            });
+            if (closeSaveCollection) closeSaveCollection.addEventListener('click', () => {
+                if (saveCollectionModal) saveCollectionModal.style.display = 'none';
+            });
 
-        // Xử lý nút "Lưu" trong modal
-        if (confirmSaveBtn) {
-            confirmSaveBtn.addEventListener('click', () => {
-                if (!currentPropertyId) return;
-                
-                const selected = Array.from(saveCollectionModal.querySelectorAll('input[name="collection"]:checked')).map(cb => cb.value);
+            // Xử lý click nút Lưu trên mỗi dòng
+            cellSaves.forEach(cell => {
+                cell.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentPropertyId = cell.getAttribute('data-id');
 
-                const formData = new FormData();
-                formData.append('property_id', currentPropertyId);
-                selected.forEach(id => formData.append('collection_ids[]', id));
+                    const checkboxes = saveCollectionModal.querySelectorAll('input[name="collection"]');
+                    checkboxes.forEach(cb => cb.checked = false);
 
-                fetch('<?= BASE_URL ?>/add-to-collection', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
-                .then(data => {
-                    if(data.success) {
-                        alert('Đã lưu vào bộ sưu tập!');
-                        if (saveCollectionModal) saveCollectionModal.style.display = 'none';
-                    } else {
-                        alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
-                    }
-                })
-                .catch(e => {
-                    console.error(e);
-                    alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại.');
+                    // Fetch các bộ sưu tập đã lưu của tài nguyên này
+                    fetch('<?= BASE_URL ?>/get-property-collections?id=' + currentPropertyId)
+                        .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
+                        .then(data => {
+                            if (data.success && data.collection_ids) {
+                                data.collection_ids.forEach(cid => {
+                                    const cb = saveCollectionModal.querySelector(`input[name="collection"][value="${cid}"]`);
+                                    if (cb) cb.checked = true;
+                                });
+                            }
+                        })
+                        .catch(e => console.error('Lỗi tải bộ sưu tập:', e))
+                        .finally(() => {
+                            if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
+                        });
                 });
             });
-        }
 
-        window.addEventListener('click', (event) => {
-            if (event.target == filterModal) filterModal.style.display = 'none';
-            if (event.target == searchModal) searchModal.style.display = 'none';
-            if (event.target == saveCollectionModal) saveCollectionModal.style.display = 'none';
+            // Xử lý nút "Lưu" trong modal
+            if (confirmSaveBtn) {
+                confirmSaveBtn.addEventListener('click', () => {
+                    if (!currentPropertyId) return;
+
+                    const selected = Array.from(saveCollectionModal.querySelectorAll('input[name="collection"]:checked')).map(cb => cb.value);
+
+                    const formData = new FormData();
+                    formData.append('property_id', currentPropertyId);
+                    selected.forEach(id => formData.append('collection_ids[]', id));
+
+                    fetch('<?= BASE_URL ?>/add-to-collection', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
+                        .then(data => {
+                            if (data.success) {
+                                alert('Đã lưu vào bộ sưu tập!');
+                                if (saveCollectionModal) saveCollectionModal.style.display = 'none';
+                            } else {
+                                alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error(e);
+                            alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại.');
+                        });
+                });
+            }
+
+            window.addEventListener('click', (event) => {
+                if (event.target == filterModal) filterModal.style.display = 'none';
+                if (event.target == searchModal) searchModal.style.display = 'none';
+                if (event.target == saveCollectionModal) saveCollectionModal.style.display = 'none';
+            });
         });
-    });
     </script>
 </body>
 

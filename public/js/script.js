@@ -1,6 +1,65 @@
 // --- 2. XỬ LÝ SỰ KIỆN KHI DOM ĐÃ SẴN SÀNG ---
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Unified client-side alert to match server partial `app/Views/partials/alert.php`
+    // Usage: showAlert('success'|'error'|'warning'|'info', 'Message text', optionalTimeoutMs)
+    window.showAlert = function (type, message, timeout) {
+        timeout = typeof timeout === 'number' ? timeout : 4500;
+        try {
+            var container = document.querySelector('.alert-wrapper');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'alert-wrapper';
+                var app = document.querySelector('.app-container') || document.body;
+                app.insertBefore(container, app.firstChild);
+            }
+
+            var icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-triangle',
+                warning: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
+
+            var alertEl = document.createElement('div');
+            alertEl.className = 'alert alert--' + (type || 'info');
+            alertEl.setAttribute('role', 'alert');
+
+            var inner = document.createElement('div');
+            inner.className = 'alert-inner';
+
+            var icon = document.createElement('i');
+            icon.className = 'fa ' + (icons[type] || icons.info) + ' alert-icon';
+            icon.setAttribute('aria-hidden', 'true');
+
+            var msg = document.createElement('div');
+            msg.className = 'alert-message';
+            msg.textContent = message || '';
+
+            var btn = document.createElement('button');
+            btn.className = 'alert-close';
+            btn.setAttribute('aria-label', 'Đóng thông báo');
+            btn.innerHTML = '&times;';
+            btn.onclick = function () { alertEl.remove(); };
+
+            inner.appendChild(icon);
+            inner.appendChild(msg);
+            inner.appendChild(btn);
+            alertEl.appendChild(inner);
+
+            container.appendChild(alertEl);
+
+            if (timeout > 0) {
+                setTimeout(function () {
+                    try { alertEl.remove(); } catch (e) { }
+                }, timeout);
+            }
+            return alertEl;
+        } catch (e) {
+            try { window.alert(message); } catch (e) { }
+        }
+    };
+
     // --- 1. TẢI BOTTOM NAV ---
     const bottomNavContainer = document.getElementById('bottom-nav-container');
     if (bottomNavContainer) {
@@ -116,11 +175,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (badge) badge.innerText = displayValue;
                         statusModal.style.display = 'none';
                     } else {
-                        alert((data && data.message) ? data.message : 'Không thể cập nhật trạng thái');
+                        window.showAlert('error', (data && data.message) ? data.message : 'Không thể cập nhật trạng thái');
                     }
                 } catch (err) {
                     console.error('Status update failed', err);
-                    alert('Lỗi khi cập nhật trạng thái. Vui lòng thử lại.');
+                    window.showAlert('error', 'Lỗi khi cập nhật trạng thái. Vui lòng thử lại.');
                 }
             };
         }
@@ -139,10 +198,33 @@ document.addEventListener('DOMContentLoaded', function () {
             e.stopPropagation(); // Ngăn chặn sự kiện click của dòng (chuyển trang)
             currentIconToSave = this;
             if (saveCollectionModal) {
-                saveCollectionModal.style.display = "flex";
-                // Reset checkbox khi mở lại (hoặc load trạng thái cũ nếu có backend)
+                // reset checkboxes first
                 const checkboxes = saveCollectionModal.querySelectorAll('input[type="checkbox"]');
                 checkboxes.forEach(cb => cb.checked = false);
+
+                // try to pre-check collections that already contain this property (ajax)
+                const tr = this.closest && this.closest('tr');
+                const propId = tr ? tr.getAttribute('data-id') : null;
+                if (propId) {
+                    // fetch via admin endpoint which allows admin/super_admin
+                    var resourceTypeParam = typeof window.CURRENT_RESOURCE_TYPE !== 'undefined' ? '&resource_type=' + encodeURIComponent(window.CURRENT_RESOURCE_TYPE) : '';
+                    fetch(window.BASE_PATH + '/admin/get-property-collections?id=' + encodeURIComponent(propId) + resourceTypeParam, { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(json => {
+                            if (json && json.success && Array.isArray(json.collection_ids)) {
+                                json.collection_ids.forEach(function (cid) {
+                                    const cb = saveCollectionModal.querySelector('input[type="checkbox"][value="' + cid + '"]');
+                                    if (cb) cb.checked = true;
+                                });
+                            }
+                        }).catch(function () {
+                            // ignore errors; user can still pick collections
+                        }).finally(function () {
+                            saveCollectionModal.style.display = 'flex';
+                        });
+                } else {
+                    saveCollectionModal.style.display = "flex";
+                }
             }
         });
     });
@@ -156,13 +238,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (btnConfirmSaveCollection) {
         btnConfirmSaveCollection.onclick = function () {
-            if (currentIconToSave) {
-                // Logic: Nếu ấn Lưu thì icon sáng lên (giả lập đã lưu)
-                currentIconToSave.classList.remove('fa-regular');
-                currentIconToSave.classList.add('fa-solid');
-                currentIconToSave.style.color = '#ffcc00';
+            // Determine property id: prefer modal dataset, else derive from currentIconToSave
+            var propId = null;
+            try { propId = saveCollectionModal && saveCollectionModal.getAttribute('data-property-id'); } catch (e) { propId = null; }
+            if (!propId && currentIconToSave) {
+                var tr = currentIconToSave.closest && currentIconToSave.closest('tr');
+                propId = tr ? tr.getAttribute('data-id') : null;
             }
-            if (saveCollectionModal) saveCollectionModal.style.display = "none";
+            if (!propId) return window.showAlert('warning', 'Không xác định tài nguyên');
+
+            var selected = Array.prototype.slice.call(saveCollectionModal.querySelectorAll('input[type="checkbox"]:checked')).map(function (cb) { return parseInt(cb.value, 10); });
+            if (selected.length === 0) return window.showAlert('warning', 'Vui lòng chọn ít nhất một bộ sưu tập');
+
+            var payload = {
+                property_id: parseInt(propId, 10),
+                collections: selected,
+                resource_type: (typeof window.CURRENT_RESOURCE_TYPE !== 'undefined' ? window.CURRENT_RESOURCE_TYPE : 'bat_dong_san'),
+                _csrf: (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
+            };
+
+            fetch(window.BASE_PATH + '/superadmin/save-to-collections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            }).then(function (res) { return res.json(); }).then(function (json) {
+                if (json && json.ok) {
+                    // visual feedback: make icon solid and yellow
+                    if (currentIconToSave) {
+                        currentIconToSave.classList.remove('fa-regular');
+                        currentIconToSave.classList.add('fa-solid');
+                        currentIconToSave.style.color = '#ffcc00';
+                    }
+                    window.showAlert('success', 'Lưu vào bộ sưu tập thành công. Đã thêm: ' + (json.added || 0));
+                } else {
+                    window.showAlert('error', 'Lỗi: ' + ((json && json.message) ? json.message : 'Không xác định'));
+                }
+            }).catch(function (err) {
+                console.error('Save to collections failed', err);
+                window.showAlert('error', 'Lỗi khi kết nối server');
+            }).finally(function () {
+                if (saveCollectionModal) saveCollectionModal.style.display = 'none';
+            });
         }
     }
 
@@ -173,8 +290,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnApplyFilter = document.getElementById('apply-filter');
 
     if (filterModal && btnFilter) {
-        // Mở modal
-        btnFilter.onclick = function () { filterModal.style.display = "flex"; }
+        // Mở modal - clear previous address input so user can type a new one immediately
+        btnFilter.onclick = function () {
+            const addr = document.getElementById('filter-address');
+            if (addr) {
+                addr.value = '';
+                try { addr.focus(); } catch (e) { }
+            }
+            filterModal.style.display = "flex";
+        }
 
         // Đóng modal
         if (btnCloseFilter) btnCloseFilter.onclick = function () { filterModal.style.display = "none"; }
@@ -249,6 +373,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const rowsPerPage = 15;
         let currentPage = 1;
+
+        // Recompute rowsPerPage on resize/orientation change and refresh pagination
+        let recomputeTimer = null;
+        function handleResizeRecompute() {
+            clearTimeout(recomputeTimer);
+            recomputeTimer = setTimeout(function () {
+                const newVal = computeRowsPerPage();
+                if (newVal !== rowsPerPage) {
+                    rowsPerPage = newVal;
+                    // ensure current page is within new total pages
+                    const totalRows = tbody.querySelectorAll('tr').length;
+                    const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+                    if (currentPage > totalPages) currentPage = totalPages;
+                    updatePagination();
+                }
+            }, 150);
+        }
+        window.addEventListener('resize', handleResizeRecompute);
+        window.addEventListener('orientationchange', handleResizeRecompute);
 
         updatePagination = function () {
             const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -1030,27 +1173,97 @@ if (btnApplySearchNotify) {
         searchModal.style.display = "none";
     }
 }
-function previewMedia(input) {
+// Keep an array of selected files so we can remove items and update the input.files accordingly
+window._selectedMedia = window._selectedMedia || [];
+
+function renderSelectedMedia() {
     const container = document.getElementById('media-preview-container');
-    container.innerHTML = ''; // Xóa nội dung cũ
-    if (input.files) {
-        Array.from(input.files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                // Kiểm tra nếu là video thì tạo thẻ video, ngược lại tạo thẻ img
-                const mediaElement = file.type.startsWith('video/') ? document.createElement('video') : document.createElement('img');
-                mediaElement.src = e.target.result;
-                mediaElement.style.width = '80px';
-                mediaElement.style.height = '80px';
-                mediaElement.style.objectFit = 'cover';
-                mediaElement.style.borderRadius = '4px';
-                mediaElement.style.border = '1px solid #ddd';
-                if (file.type.startsWith('video/')) mediaElement.controls = true; // Hiện nút play cho video
-                container.appendChild(mediaElement);
-            }
-            reader.readAsDataURL(file);
-        });
+    const input = document.getElementById('file-upload');
+    container.innerHTML = '';
+    if (!window._selectedMedia || window._selectedMedia.length === 0) {
+        // clear input as well
+        if (input) input.value = '';
+        return;
     }
+
+    window._selectedMedia.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const wrapper = document.createElement('div');
+            wrapper.style.flex = '0 0 auto';
+            wrapper.style.width = '100px';
+            wrapper.style.height = '100px';
+            wrapper.style.position = 'relative';
+            wrapper.style.borderRadius = '6px';
+            wrapper.style.overflow = 'hidden';
+            wrapper.style.background = '#fff';
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.boxShadow = '0 0 0 1px rgba(0,0,0,0.04)';
+            wrapper.style.margin = '6px 6px';
+
+            const mediaElement = file.type && file.type.startsWith('video/') ? document.createElement('video') : document.createElement('img');
+            mediaElement.src = e.target.result;
+            mediaElement.style.width = '100%';
+            mediaElement.style.height = '100%';
+            mediaElement.style.objectFit = 'cover';
+            if (file.type && file.type.startsWith('video/')) mediaElement.controls = true;
+
+            const btnDelete = document.createElement('button');
+            btnDelete.type = 'button';
+            btnDelete.innerHTML = '&times;';
+            btnDelete.style.position = 'absolute';
+            btnDelete.style.top = '6px';
+            btnDelete.style.right = '6px';
+            btnDelete.style.width = '26px';
+            btnDelete.style.height = '26px';
+            btnDelete.style.border = 'none';
+            btnDelete.style.background = 'rgba(0,0,0,0.6)';
+            btnDelete.style.color = '#fff';
+            btnDelete.style.borderRadius = '50%';
+            btnDelete.style.cursor = 'pointer';
+            btnDelete.style.display = 'flex';
+            btnDelete.style.alignItems = 'center';
+            btnDelete.style.justifyContent = 'center';
+            btnDelete.onclick = function () {
+                window._selectedMedia.splice(idx, 1);
+                // rebuild input.files
+                const dt = new DataTransfer();
+                window._selectedMedia.forEach(f => dt.items.add(f));
+                if (input) input.files = dt.files;
+                renderSelectedMedia();
+            };
+
+            wrapper.appendChild(mediaElement);
+            wrapper.appendChild(btnDelete);
+            container.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function previewMedia(input) {
+    if (!input) return;
+    const maxFiles = 12;
+    const newFiles = Array.from(input.files || []);
+    // initialize selected media if missing
+    window._selectedMedia = window._selectedMedia || [];
+    // append new files while enforcing maxFiles
+    for (let f of newFiles) {
+        if (window._selectedMedia.length >= maxFiles) break;
+        window._selectedMedia.push(f);
+    }
+
+    // rebuild input.files from _selectedMedia
+    const dt = new DataTransfer();
+    window._selectedMedia.forEach(f => dt.items.add(f));
+    try { input.files = dt.files; } catch (e) { /* ignore if not allowed */ }
+
+    // reset native input so user can pick more files later (some browsers require this)
+    try { input.value = ''; } catch (e) { }
+
+    renderSelectedMedia();
 }
 
 // Initialize CKEditor only if the script is loaded and the textarea exists
@@ -1134,3 +1347,102 @@ function previewMediaInternal(input) {
         }
     }
 }
+
+// --- Auto-save draft for resource-post form ---
+(function () {
+    // initialize after DOM is ready so we can find the form and attach listeners
+    window.addEventListener('DOMContentLoaded', function () {
+        const FORM_SELECTOR = 'form[action$="/superadmin/management-resource-post"]';
+        const form = document.querySelector(FORM_SELECTOR);
+        if (!form) return;
+
+        const STORAGE_KEY = 'draft:resource-post';
+        const saveDelay = 400; // ms
+        let saveTimer = null;
+        let pendingSet = {};
+
+        function collectData() {
+            const data = {};
+            form.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
+                if (!el.name) return;
+                if (el.type === 'file') return; // files cannot be stored
+                if (el.type === 'checkbox') {
+                    data[el.name] = el.checked ? '1' : '0';
+                    return;
+                }
+                if (el.type === 'radio') {
+                    if (!el.checked) return;
+                }
+                data[el.name] = el.value;
+            });
+            return data;
+        }
+
+        function saveDraft() {
+            const data = collectData();
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                // ignore quota errors
+            }
+        }
+
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveDraft, saveDelay);
+        }
+
+        function trySetField(name, value) {
+            const el = form.querySelector('[name="' + name + '"]');
+            if (!el) return false;
+            if (el.type === 'checkbox') {
+                el.checked = value === '1' || value === true;
+                return true;
+            }
+            el.value = value;
+            // for change listeners that depend on programmatic set
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
+        }
+
+        function restoreDraft() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            let data;
+            try { data = JSON.parse(raw); } catch (e) { return; }
+            pendingSet = {};
+            Object.keys(data).forEach(k => {
+                const ok = trySetField(k, data[k]);
+                if (!ok) pendingSet[k] = data[k];
+            });
+            // retry setting pending keys a few times (for selects populated async)
+            if (Object.keys(pendingSet).length > 0) {
+                let retries = 6;
+                const t = setInterval(() => {
+                    Object.keys(pendingSet).forEach(k => {
+                        if (trySetField(k, pendingSet[k])) delete pendingSet[k];
+                    });
+                    if (Object.keys(pendingSet).length === 0 || --retries <= 0) clearInterval(t);
+                }, 500);
+            }
+        }
+
+        // Clear draft if there's a success alert rendered by server
+        function clearIfSuccess() {
+            if (document.querySelector('.alert--success')) {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        }
+
+        // Attach listeners
+        form.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
+            if (el.type === 'file') return; // skip files
+            const ev = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'radio') ? 'change' : 'input';
+            el.addEventListener(ev, scheduleSave);
+        });
+
+        // on load, clear only if success and otherwise restore draft
+        clearIfSuccess();
+        if (!document.querySelector('.alert--success')) restoreDraft();
+    });
+})();
