@@ -314,6 +314,80 @@ class MainController extends Controller
         ]);
     }
 
+    public function resourceSum()
+    {
+        // list kho_nha_dat (Sum version)
+        require_once __DIR__ . '/../Models/Property.php';
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        $collections = Collection::getForUser($userId);
+
+        $this->view('main/resource_sum', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address,
+            'collections' => $collections
+        ]);
+    }
+      public function resourceSum2()
+    {
+        // list kho_nha_dat (Sum version)
+        require_once __DIR__ . '/../Models/Property.php';
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_cho_thue', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        $collections = Collection::getForUser($userId);
+
+        $this->view('main/resource_sum2', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address,
+            'collections' => $collections
+        ]);
+    }
     public function reportList()
     {
         require_once __DIR__ . '/../../core/Auth.php';

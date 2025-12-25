@@ -205,6 +205,19 @@
                         <i class="fa-solid fa-chevron-down arrow-down-absolute"></i>
                     </div>
                 </div>
+                <div class="edit-form-group">
+                    <div class="edit-label-row"><span>14.Vị trí</span></div>
+                    <div class="edit-input-box input-relative">
+                        <?php $vi_tri_val = old('vi_tri', $user['vi_tri'] ?? null); ?>
+                        <select class="custom-select" name="vi_tri" style="padding-left: 10px; cursor: pointer;">
+                            <option value="0" <?= (string)$vi_tri_val === '0' ? 'selected' : '' ?>>Kho nhà đất</option>
+                            <option value="1" <?= (string)$vi_tri_val === '1' ? 'selected' : '' ?>>Kho nhà cho thuê</option>
+                            <option value="2" <?= (string)$vi_tri_val === '2' ? 'selected' : '' ?>>Kho nhà đất và cho thuê</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down arrow-down-absolute"></i>
+                    </div>
+                </div>
+
                 <div class="bottom-action-bar">
                     <a href="<?= BASE_URL ?>/superadmin/management-owner" class="btn-delete-red" style="text-decoration:none;display:inline-block;padding:10px 16px;">Quay lại</a>
                     <button type="submit" class="btn-save-right">Lưu thay đổi</button>

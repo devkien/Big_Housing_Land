@@ -30,10 +30,7 @@
 
         <div class="tabs-container">
             <button class="tab-btn active">Kho nhà đất</button>
-
-            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource-rent'">Kho nhà cho thuê</button>
         </div>
-
         <div class="toolbar-section">
             <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
             <div style="flex:1;"></div>

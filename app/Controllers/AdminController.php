@@ -439,6 +439,76 @@ class AdminController extends Controller
         ]);
     }
 
+    public function resourceSum()
+    {
+         // list kho_nha_dat
+        require_once __DIR__ . '/../Models/Property.php';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        // prefer address as explicit search term
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
+
+        // Lấy danh sách bộ sưu tập để hiển thị trong modal
+        $db = \Database::connect();
+        $stmt = $db->query("SELECT * FROM collections WHERE trang_thai = 1 ORDER BY id DESC");
+        $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('admin/resource_sum', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address,
+            'collections' => $collections
+        ]);
+    }
+    public function resourceSum2()
+    {
+        // list kho_cho_thue
+        require_once __DIR__ . '/../Models/Property.php';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 12;
+        $search = isset($_GET['q']) ? trim($_GET['q']) : null;
+        $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+        $address = isset($_GET['address']) ? trim($_GET['address']) : null;
+
+        $searchTerm = $address ?: $search;
+
+        $total = Property::countByLoaiKho('kho_cho_thue', $searchTerm, $status);
+        $pages = (int)ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
+
+        $this->view('admin/resource_sum_2', [
+            'properties' => $properties,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+            'perPage' => $perPage,
+            'search' => $search,
+            'status' => $status,
+            'address' => $address,
+            // load collections for save modal
+            'collections' => (function () {
+                require_once __DIR__ . '/../Models/Collection.php';
+                return Collection::allWithCount();
+            })()
+        ]);
+    }
     public function reportList()
     {
         require_once __DIR__ . '/../Models/LeadReport.php';

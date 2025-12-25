@@ -29,10 +29,8 @@ class AuthController extends Controller
 
         $_SESSION['user'] = $user;
 
-        // KIỂM TRA ROLE VÀ REDIRECT
-        // Redirect theo role (normalize bằng Auth::role())
-        require_once __DIR__ . '/../../core/Auth.php';
-        $role = \Auth::role();
+        // KIỂM TRA ROLE VÀ REDIRECT - Sử dụng trực tiếp cột 'quyen' từ CSDL để tăng cường bảo mật
+        $role = $user['quyen'] ?? 'user';
 
         if ($role === 'super_admin') {
             header('Location: ' . BASE_URL . '/superadmin/home');
@@ -205,6 +203,24 @@ class AuthController extends Controller
         }
         // Tạo mã mới: MNV + số được đệm số 0 (ví dụ: 1 -> 01, 10 -> 10)
         $data['ma_nhan_su'] = 'MNV' . str_pad($nextNum, 2, '0', STR_PAD_LEFT);
+
+        // ===== MAP 'vi_tri' TO INTEGER =====
+        // Ánh xạ giá trị chuỗi từ form sang số nguyên để lưu vào DB
+        // 0: Kho nhà đất, 1: Kho nhà cho thuê, 2: Cả hai
+        $vi_tri_string = $data['vi_tri'];
+        switch ($vi_tri_string) {
+            case 'kho_nha_dat':
+                $data['vi_tri'] = 0;
+                break;
+            case 'kho_nha_cho_thue':
+                $data['vi_tri'] = 1;
+                break;
+            case 'ca_hai':
+                $data['vi_tri'] = 2;
+                break;
+            default:
+                $data['vi_tri'] = null; // Giá trị mặc định nếu không khớp
+        }
 
         $result = User::createWithRole($data);
 

@@ -196,7 +196,7 @@ class User extends Model
         $db = self::db();
         // Also persist 'quyen' and 'loai_tai_khoan' when provided.
         $stmt = $db->prepare(
-            "UPDATE users SET ma_nhan_su = ?, so_dien_thoai = ?, ho_ten = ?, nam_sinh = ?, email = ?, so_cccd = ?, phong_ban = ?, dia_chi = ?, link_fb = ?, ma_gioi_thieu = ?, anh_cccd = ?, trang_thai = ?, quyen = ?, loai_tai_khoan = ?, updated_at = NOW() WHERE id = ?"
+            "UPDATE users SET ma_nhan_su = ?, so_dien_thoai = ?, ho_ten = ?, nam_sinh = ?, email = ?, so_cccd = ?, phong_ban = ?, dia_chi = ?, link_fb = ?, ma_gioi_thieu = ?, anh_cccd = ?, trang_thai = ?, quyen = ?, loai_tai_khoan = ?, vi_tri = ?, updated_at = NOW() WHERE id = ?"
         );
 
         // Derive loai_tai_khoan if not explicitly provided (keep compatibility)
@@ -204,6 +204,9 @@ class User extends Model
 
         // Đảm bảo trạng thái là số nguyên (0, 1, 2)
         $trangThai = isset($data['trang_thai']) ? (int)$data['trang_thai'] : 0;
+
+        // Handle vi_tri, allowing null
+        $viTri = isset($data['vi_tri']) && $data['vi_tri'] !== '' ? (int)$data['vi_tri'] : null;
 
         return $stmt->execute([
             $data['ma_nhan_su'] ?? null,
@@ -220,6 +223,7 @@ class User extends Model
             $trangThai,
             $data['quyen'] ?? 'user',
             $loai,
+            $viTri,
             $id
         ]);
     }

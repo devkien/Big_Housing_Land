@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kho nhà cho thuê</title>
+    <title>Kho tổng hợp</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/css/style.css">
     <script>
@@ -18,7 +18,6 @@
     </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
-
 <body>
     <div class="app-container" style="background: white;">
 
@@ -29,11 +28,12 @@
         </header>
 
         <div class="tabs-container">
-            <button class="tab-btn active">Kho nhà cho thuê</button>
+            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource-sum'">Kho nhà đất</button>
+            <button class="tab-btn active" >Kho nhà cho thuê</button>
+            
         </div>
-
         <div class="toolbar-section">
-            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>
+            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>    
             <div style="flex:1;"></div>
         </div>
 
@@ -69,8 +69,7 @@
                         foreach ($properties as $p) :
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $statusKey = $p['trang_thai'] ?? '';
-                            $status = $statusMap[$statusKey] ?? ($statusKey ?: '');
+                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
                             $address = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($address === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -89,7 +88,7 @@
                                 <td>
                                     <?= $created ?>
                                 </td>
-                                <td><span class="status-badge strong status-badge--<?= htmlspecialchars($statusKey) ?>">
+                                <td><span class="status-badge strong">
                                         <?= htmlspecialchars($status) ?>
                                     </span></td>
                                 <td style=" padding-right:15px;">
@@ -114,13 +113,13 @@
             ?>
 
             <?php if ($page > 1): ?>
-                <a href="<?= BASE_URL ?>/admin/management-resource-rent?page=<?= $page - 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+                <a href="<?= BASE_URL ?>/admin/management-resource-sum_2?page=<?= $page - 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
             <?php endif; ?>
-
+            
             <a href="#" class="page-link active"><?= $page ?> / <?= $pages > 0 ? $pages : 1 ?></a>
-
+            
             <?php if ($page < $pages): ?>
-                <a href="<?= BASE_URL ?>/admin/management-resource-rent?page=<?= $page + 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+                <a href="<?= BASE_URL ?>/admin/management-resource-sum_2?page=<?= $page + 1 ?>&<?= $queryString ?>" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
             <?php endif; ?>
         </div>
         <!-- Modal Lọc -->
@@ -159,21 +158,16 @@
                 <div class="filter-group">
                     <div class="collection-list-select"
                         style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 5px;">
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="1" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Khách hàng tiềm năng</span>
-                        </label>
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="2" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Nhà đất Hà Đông</span>
-                        </label>
-                        <label class="collection-option"
-                            style="display: flex; align-items: center; padding: 10px; cursor: pointer;">
-                            <input type="checkbox" name="collection" value="3" style="margin-right: 10px;">
-                            <span style="font-size: 14px; color: #000;">Dự án mới</span>
-                        </label>
+                        <?php if (!empty($collections)): ?>
+                            <?php foreach ($collections as $c): ?>
+                                <label class="collection-option" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;">
+                                    <input type="checkbox" name="collection[]" value="<?= $c['id'] ?>" style="margin-right: 10px;">
+                                    <span style="font-size: 14px; color: #000;"><?= htmlspecialchars($c['ten_bo_suu_tap']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div style="padding: 10px; text-align: center; color: #666;">Chưa có bộ sưu tập nào.</div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -225,6 +219,9 @@
             const closeStatusModal = document.getElementById('close-status-modal');
             const iconNotes = document.querySelectorAll('.icon-note');
             const saveStatusBtn = document.getElementById('save-status-btn');
+            const cellSaves = document.querySelectorAll('.icon-save');
+            const saveCollectionModal = document.getElementById('save-collection-modal');
+            const confirmSaveCollection = document.getElementById('confirm-save-collection');
             let currentPropertyId = null;
 
             if (btnFilter) {
@@ -270,38 +267,80 @@
                 });
             }
 
+            if (cellSaves) {
+                cellSaves.forEach(icon => {
+                    icon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const tr = icon.closest('tr');
+                        // Lấy ID từ thuộc tính onclick của tr hoặc data-id nếu có
+                        // Ở đây tr có onclick="window.location.href='...id=...'"
+                        // Ta sẽ lấy từ URL trong onclick
+                        const onclickStr = tr.getAttribute('onclick');
+                        const match = onclickStr.match(/id=(\d+)/);
+                        if (match) {
+                            currentPropertyId = match[1];
+                            if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
+                        }
+                    });
+                });
+            }
+
+            if (confirmSaveCollection) {
+                confirmSaveCollection.addEventListener('click', () => {
+                    if (!currentPropertyId) return;
+                    const selected = [];
+                    saveCollectionModal.querySelectorAll('input[name="collection[]"]:checked').forEach(cb => {
+                        selected.push(cb.value);
+                    });
+
+                    const formData = new FormData();
+                    formData.append('property_id', currentPropertyId);
+                    selected.forEach(id => formData.append('collection_ids[]', id));
+
+                    fetch('<?= BASE_URL ?>/admin/add-to-collection', {
+                        method: 'POST',
+                        body: formData
+                    }).then(r => r.json()).then(data => {
+                        if(data.success) {
+                            alert('Đã lưu vào bộ sưu tập!');
+                            saveCollectionModal.style.display = 'none';
+                        } else alert('Lỗi: ' + (data.message || 'Không thể lưu'));
+                    });
+                });
+            }
+
             if (saveStatusBtn) {
                 saveStatusBtn.addEventListener('click', () => {
                     if (!currentPropertyId) return;
                     const newStatus = document.getElementById('edit-status-select').value;
-
+                    
                     const formData = new FormData();
                     formData.append('id', currentPropertyId);
                     formData.append('status', newStatus);
 
                     fetch('<?= BASE_URL ?>/admin/update-resource-status', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
-                                throw new Error('Lỗi server: ' + response.status);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                alert('Cập nhật trạng thái thành công!');
-                                location.reload();
-                            } else {
-                                alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Lỗi: ' + error.message);
-                        });
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            if (response.status === 404) throw new Error('Đường dẫn API chưa được tạo (404). Vui lòng kiểm tra Controller.');
+                            throw new Error('Lỗi server: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật trạng thái thành công!');
+                            location.reload();
+                        } else {
+                            alert('Có lỗi xảy ra: ' + (data.message || 'Không xác định'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Lỗi: ' + error.message);
+                    });
                 });
             }
 
@@ -315,19 +354,22 @@
                 if (event.target == statusModal) {
                     statusModal.style.display = 'none';
                 }
+                if (event.target == saveCollectionModal) {
+                    saveCollectionModal.style.display = 'none';
+                }
             });
 
             if (applyFilter) {
                 applyFilter.addEventListener('click', () => {
                     const status = document.getElementById('filter-status').value;
                     const address = document.getElementById('filter-address').value;
-
-                    const url = new URL('<?= BASE_URL ?>/admin/management-resource-rent', window.location.origin);
+                    
+                    const url = new URL('<?= BASE_URL ?>/admin/management-resource-sum_2', window.location.origin);
                     url.searchParams.set('page', '1'); // Reset to first page on new filter
 
                     if (status && status !== 'all') url.searchParams.set('status', status);
                     if (address) url.searchParams.set('address', address);
-
+                    
                     window.location.href = url.toString();
                 });
             }
@@ -335,12 +377,12 @@
             if (applySearch) {
                 applySearch.addEventListener('click', () => {
                     const search = document.getElementById('search-input').value;
-
-                    const url = new URL('<?= BASE_URL ?>/admin/management-resource-rent', window.location.origin);
+                    
+                    const url = new URL('<?= BASE_URL ?>/admin/management-resource-sum_2', window.location.origin);
                     url.searchParams.set('page', '1');
 
                     if (search) url.searchParams.set('q', search);
-
+                    
                     window.location.href = url.toString();
                 });
             }
