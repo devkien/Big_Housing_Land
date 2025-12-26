@@ -39,10 +39,10 @@ class DealPost extends Model
         $stmt->execute([(int)$id]);
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$post) return null;
-
-        $stmt2 = $db->prepare("SELECT image_path FROM deal_post_images WHERE deal_post_id = ? ORDER BY id ASC");
+ 
+        $stmt2 = $db->prepare("SELECT * FROM deal_post_images WHERE deal_post_id = ? ORDER BY id ASC");
         $stmt2->execute([(int)$id]);
-        $post['images'] = $stmt2->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        $post['images'] = $stmt2->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         return $post;
     }
@@ -70,5 +70,54 @@ class DealPost extends Model
             $stmt->execute([(int)$dealPostId, $p]);
         }
         return true;
+    }
+
+    public static function update(int $id, array $data)
+    {
+        $db = self::db();
+        $sql = "UPDATE deal_posts SET tieu_de = ?, noi_dung = ?, updated_at = NOW() WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        return $stmt->execute([
+            $data['tieu_de'] ?? null,
+            $data['noi_dung'] ?? null,
+            $id
+        ]);
+    }
+
+    public static function deleteImageById(int $imageId)
+    {
+        $db = self::db();
+        // First, get the path to delete the file from disk
+        $stmt = $db->prepare("SELECT image_path FROM deal_post_images WHERE id = ?");
+        $stmt->execute([$imageId]);
+        $path = $stmt->fetchColumn();
+        if ($path && file_exists(__DIR__ . '/../../public/' . $path)) {
+            @unlink(__DIR__ . '/../../public/' . $path);
+        }
+        // Then, delete the record from the database
+        $stmt = $db->prepare("DELETE FROM deal_post_images WHERE id = ?");
+        return $stmt->execute([$imageId]);
+    }
+
+    public static function deleteById(int $id)
+    {
+        $db = self::db();
+        try {
+            $db->beginTransaction();
+
+            // First, delete associated images to avoid foreign key constraints
+            $stmt1 = $db->prepare("DELETE FROM deal_post_images WHERE deal_post_id = ?");
+            $stmt1->execute([$id]);
+
+            // Then, delete the post itself
+            $stmt2 = $db->prepare("DELETE FROM deal_posts WHERE id = ?");
+            $stmt2->execute([$id]);
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            return false;
+        }
     }
 }

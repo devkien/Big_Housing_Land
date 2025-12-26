@@ -9,7 +9,7 @@ class Collection extends Model
         $db = self::db();
         $params = [];
 
-        $sql = "SELECT c.id, c.ten_bo_suu_tap, c.anh_dai_dien, c.mo_ta, c.is_default, c.trang_thai, COUNT(ci.id) AS item_count
+        $sql = "SELECT c.id, c.user_id, c.ten_bo_suu_tap, c.anh_dai_dien, c.mo_ta, c.is_default, c.trang_thai, COUNT(ci.id) AS item_count
                 FROM collections c
                 LEFT JOIN collection_items ci ON ci.collection_id = c.id";
 

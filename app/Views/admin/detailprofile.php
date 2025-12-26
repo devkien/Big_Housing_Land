@@ -35,9 +35,26 @@
 
             <img src="<?php echo htmlspecialchars($avatarUrl, ENT_QUOTES, 'UTF-8'); ?>" class="profile-avatar-circle">
 
-            <a href="<?= BASE_URL ?>/admin/editprofile" class="edit-profile-btn">
-                <i class="fa-solid fa-pen"></i> Chỉnh sửa hồ sơ
-            </a>
+            <?php
+            // Logic to determine if the edit button should be shown.
+            $showEditButton = false;
+            if (isset($sessionUser)) {
+                $sessionUserRole = $sessionUser['quyen'] ?? 'user';
+                // A super_admin can edit anyone's profile.
+                if ($sessionUserRole === 'super_admin') {
+                    $showEditButton = true;
+                }
+                // An admin can only edit their own profile.
+                elseif ($sessionUserRole === 'admin' && isset($user['id']) && (int)$sessionUser['id'] === (int)$user['id']) {
+                    $showEditButton = true;
+                }
+            }
+            ?>
+            <?php if ($showEditButton): ?>
+                <a href="<?= BASE_URL ?>/admin/editprofile?id=<?= $user['id'] ?>" class="edit-profile-btn">
+                    <i class="fa-solid fa-pen"></i> Chỉnh sửa hồ sơ
+                </a>
+            <?php endif; ?>
         </div>
 
         <div class="profile-text-info">

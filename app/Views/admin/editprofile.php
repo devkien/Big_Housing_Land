@@ -37,7 +37,7 @@
             <i class="fa-solid fa-chevron-right arrow-right-absolute"></i>
         </div>
 
-        <form action="<?php echo BASE_URL; ?>/admin/editprofile" method="post">
+        <form action="<?php echo BASE_URL; ?>/admin/editprofile?id=<?= $user['id'] ?>" method="post">
 
             <div class="edit-form-group">
                 <div class="edit-label-row">

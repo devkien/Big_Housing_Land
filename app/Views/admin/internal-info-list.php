@@ -40,6 +40,11 @@
                     <tbody>
                         <?php if (!empty($posts) && is_array($posts)): ?>
                             <?php foreach ($posts as $p): ?>
+                                <?php
+                                $isPinned = !empty($p['is_pinned']) && $p['is_pinned'] == 1;
+                                $pinColor = $isPinned ? '#0033cc' : '#ccc';
+                                $pinTransform = $isPinned ? 'rotate(45deg)' : 'rotate(0deg)';
+                                ?>
                                 <tr data-id="<?= (int)$p['id'] ?>">
                                     <td style="padding-left: 15px; text-align: center;">
                                         <button class="btn-icon delete-btn" data-id="<?= (int)$p['id'] ?>" style="background:none;border:none;padding:0;cursor:pointer;">
@@ -47,7 +52,7 @@
                                         </button>
                                     </td>
                                     <td style="text-align: center;">
-                                        <i class="fa-solid fa-thumbtack pin-icon" style="color: #ccc; cursor: pointer;"></i>
+                                        <i class="fa-solid fa-thumbtack pin-icon" data-id="<?= (int)$p['id'] ?>" data-pinned="<?= $isPinned ? '1' : '0' ?>" style="color: <?= $pinColor ?>; transform: <?= $pinTransform ?>; cursor: pointer; transition: all 0.2s;"></i>
                                     </td>
                                     <td><span class="text-id-blue"><?= htmlspecialchars($p['ma_hien_thi'] ?? '') ?></span></td>
                                     <td class="title-cell"><?= htmlspecialchars(mb_strimwidth(strip_tags($p['tieu_de'] ?? ''), 0, 80, '...')) ?></td>
@@ -159,11 +164,47 @@
 
             // Xử lý sự kiện click vào icon ghim
             const pinIcons = document.querySelectorAll('.pin-icon');
-            pinIcons.forEach(icon => {
+            pinIcons.forEach(function(icon) {
                 icon.addEventListener('click', function() {
-                    const isPinned = this.style.color === 'rgb(0, 51, 204)' || this.style.color === '#0033cc';
-                    this.style.color = isPinned ? '#ccc' : '#0033cc';
-                    this.style.transform = isPinned ? 'rotate(0deg)' : 'rotate(45deg)';
+                    const postId = this.getAttribute('data-id');
+                    const isCurrentlyPinned = this.getAttribute('data-pinned') === '1';
+                    const newPinState = isCurrentlyPinned ? 0 : 1;
+                    const csrf = document.getElementById('csrf-token') ? document.getElementById('csrf-token').value : '';
+
+                    this.style.pointerEvents = 'none';
+                    const originalColor = this.style.color;
+                    this.style.color = '#aaa';
+
+                    fetch('<?= BASE_URL ?>/superadmin/internal-info-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: postId,
+                            pinned: newPinState,
+                            _csrf: csrf
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.ok) {
+                            this.setAttribute('data-pinned', newPinState);
+                            this.style.color = newPinState ? '#0033cc' : '#ccc';
+                            this.style.transform = newPinState ? 'rotate(45deg)' : 'rotate(0deg)';
+                        } else {
+                            this.style.color = originalColor;
+                            alert('Lỗi: ' + (data.message || 'Không thể ghim bài viết.'));
+                        }
+                    })
+                    .catch(err => {
+                        this.style.color = originalColor;
+                        alert('Đã xảy ra lỗi kết nối.');
+                    })
+                    .finally(() => {
+                        this.style.pointerEvents = 'auto';
+                    });
                 });
             });
 

@@ -157,10 +157,15 @@ $router->get('/admin/cre-collection', 'AdminController@creCollection', 'role:adm
 $router->post('/admin/cre-collection', 'AdminController@creCollection', 'role:admin,super_admin');
 $router->post('/admin/collection-rename', 'AdminController@renameCollection', 'role:admin,super_admin');
 $router->post('/admin/collection-delete', 'AdminController@deleteCollection', 'role:admin,super_admin');
+$router->get('/admin/collection-detail', 'AdminController@collectionDetail', 'role:admin,super_admin');
+$router->post('/admin/collection-remove-item', 'CollectionController@removeItem', 'role:admin,super_admin');
 
 $router->get('/admin/notification', 'AdminController@notification', 'role:admin,super_admin');
 $router->get('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
 $router->post('/admin/cre-notification', 'AdminController@creNotification', 'role:admin,super_admin');
+$router->get('/admin/edit-notification', 'AdminController@editNotification', 'role:admin,super_admin');
+$router->post('/admin/edit-notification', 'AdminController@editNotification', 'role:admin,super_admin');
+$router->post('/admin/delete-notification', 'AdminController@deleteNotification', 'role:admin,super_admin');
 $router->get('/admin/auto-match', 'AdminController@autoMatch', 'role:admin,super_admin');
 $router->post('/admin/auto-match', 'AdminController@autoMatch', 'role:admin,super_admin');
 $router->get('/admin/policy', 'AdminController@policy', 'role:admin,super_admin');
@@ -177,6 +182,12 @@ $router->get('/admin/terms-service', 'AdminController@termsService', 'role:admin
 $router->get('/admin/privacy-policy', 'AdminController@privacyPolicy', 'role:admin,super_admin');
 $router->get('/admin/payment-policy', 'AdminController@paymentPolicy', 'role:admin,super_admin');
 $router->get('/admin/cookie-policy', 'AdminController@cookiePolicy', 'role:admin,super_admin');
+
+// Route lấy danh sách collection đã tick (GET)
+$router->get('/admin/get-property-collections', 'AdminController@getPropertyCollections', 'role:admin,super_admin');
+
+// Route lưu vào collection (POST)
+$router->post('/admin/save-to-collections', 'AdminController@saveToCollections', 'role:admin,super_admin'); 
 
 // ==================== SuperAdmin ====================
 

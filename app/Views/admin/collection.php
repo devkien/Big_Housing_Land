@@ -28,10 +28,19 @@
 
         <form class="search-collection-box" method="GET" action="<?= BASE_URL ?>/admin/collection">
             <input type="text" name="q" value="<?= htmlspecialchars($search ?? '') ?>" placeholder="Nhập thông tin tìm kiếm..." style="border: none; outline: none; background: transparent; flex: 1;">
+            <?php if (!empty($search)): ?>
+                <a href="<?= BASE_URL ?>/admin/collection" style="color: #999; margin-right: 10px; text-decoration: none;"><i class="fa-solid fa-xmark"></i></a>
+            <?php endif; ?>
             <button type="submit" style="border: none; background: transparent; padding: 0; cursor: pointer;"><i class="fa-solid fa-magnifying-glass"></i></button>
         </form>
 
         <div style="flex: 1; overflow-y: auto;">
+            <?php
+                // Lấy thông tin user hiện tại để kiểm tra quyền
+                $currentUser = $currentUser ?? null;
+                $currentUserId = $currentUser['id'] ?? 0;
+                $isSuperAdmin = ($currentUserRole ?? '') === 'super_admin';
+            ?>
             <?php if (empty($collections)): ?>
                 <div id="no-result-message" style="text-align: center; padding: 20px; color: #666; font-size: 14px;">
                     Không tìm thấy bộ sưu tập nào.
@@ -45,18 +54,23 @@
                     if (!empty($c['anh_dai_dien'])) {
                         $bgImage = "background-image: url('" . BASE_URL . "/" . $c['anh_dai_dien'] . "'); background-size: cover; background-position: center; color: transparent;";
                     }
+                    // Kiểm tra quyền sửa: SuperAdmin hoặc chính chủ
+                    $collectionOwnerId = (int)($c['user_id'] ?? 0);
+                    $canEdit = $isSuperAdmin || ($currentUserId > 0 && $currentUserId === $collectionOwnerId);
                 ?>
-                <div class="collection-card">
+                <div class="collection-card" style="cursor: pointer;" onclick="window.location.href='<?= BASE_URL ?>/admin/collection-detail?id=<?= $c['id'] ?>'">
                     <div class="collection-thumb" style="<?= $bgImage ?>"><?= empty($bgImage) ? $firstChar : '' ?></div>
                     <div class="collection-info">
                         <div class="collection-name"><?= $name ?></div>
                         <div class="collection-count"><?= $count ?> tin</div>
                     </div>
-                    <div class="btn-more-dots" 
-                         data-id="<?= $c['id'] ?>" 
-                         data-name="<?= $name ?>">
-                        <i class="fa-solid fa-ellipsis"></i>
-                    </div>
+                    <?php if ($canEdit): ?>
+                        <div class="btn-more-dots" 
+                            data-id="<?= $c['id'] ?>" 
+                            data-name="<?= $name ?>">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -104,6 +118,19 @@
             const navCollection = document.getElementById('nav-collection');
             if (navCollection) navCollection.classList.add('active');
 
+            // --- Tự động tìm kiếm khi gõ ---
+            const searchForm = document.querySelector('.search-collection-box');
+            const searchInput = searchForm ? searchForm.querySelector('input[name="q"]') : null;
+            let searchTimeout;
+
+            if (searchInput && searchForm) {
+                searchInput.addEventListener('input', function() {
+                    // Xóa timeout cũ và đặt timeout mới
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => searchForm.submit(), 500); // Gửi form sau 500ms không gõ
+                });
+            }
+
             const modal = document.getElementById('collection-modal');
             const renameModal = document.getElementById('rename-collection-modal');
             const dots = document.querySelectorAll('.btn-more-dots');
@@ -120,7 +147,8 @@
 
             // Open options modal
             dots.forEach(dot => {
-                dot.addEventListener('click', function() {
+                dot.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Ngăn không cho chuyển trang khi bấm vào nút more
                     currentId = this.getAttribute('data-id');
                     currentName = this.getAttribute('data-name');
                     modal.style.display = 'flex';

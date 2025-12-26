@@ -26,8 +26,7 @@ class AdminController extends Controller
                 $pinnedFull[] = $full;
             }
         }
-        // Sử dụng view của superadmin để đồng bộ giao diện
-        $this->view('superadmin/home', ['pinnedPosts' => $pinnedFull]);
+        $this->view('admin/home', ['pinnedPosts' => $pinnedFull]);
     }
     public function logout()
     {
@@ -50,15 +49,31 @@ class AdminController extends Controller
         require_once __DIR__ . '/../Models/User.php';
 
         $sessionUser = \Auth::user();
+        $userId = $_GET['id'] ?? null;
         $user = null;
-        if (!empty($sessionUser['id'])) {
-            $user = User::findById($sessionUser['id']);
+
+        if ($userId) {
+            // Viewing someone else's profile
+            $user = User::findById((int)$userId);
+        } else {
+            // Viewing own profile
+            if (!empty($sessionUser['id'])) {
+                $user = User::findById($sessionUser['id']);
+            }
+            // Fallback to session user if DB lookup fails
+            if (!$user) $user = $sessionUser;
         }
 
-        // Fallback to session user if DB lookup fails
-        if (!$user) $user = $sessionUser;
+        if (!$user) {
+            $_SESSION['error'] = 'Không tìm thấy người dùng.';
+            header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/admin/home'));
+            exit;
+        }
 
-        $this->view('admin/detailprofile', ['user' => $user]);
+        $this->view('admin/detailprofile', [
+            'user' => $user,
+            'sessionUser' => $sessionUser // Pass session user for permission checks in view
+        ]);
     }
 
     public function editprofile()
@@ -73,7 +88,17 @@ class AdminController extends Controller
             exit;
         }
 
-        $id = $sessionUser['id'];
+        // Lấy ID từ URL, nếu không có thì mặc định là user đang đăng nhập
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : $sessionUser['id'];
+
+        // === PERMISSION CHECK ===
+        // Super Admin can edit anyone.
+        // Admin can only edit their own profile.
+        if (($sessionUser['quyen'] ?? 'user') === 'admin' && $id !== (int)$sessionUser['id']) {
+            $_SESSION['error'] = 'Bạn không có quyền chỉnh sửa hồ sơ của người dùng khác.';
+            header('Location: ' . BASE_URL . '/admin/detailprofile?id=' . $id);
+            exit;
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
@@ -87,27 +112,30 @@ class AdminController extends Controller
 
             if (empty($data['so_dien_thoai'])) {
                 // $_SESSION['error'] = 'Số điện thoại là bắt buộc';
-                header('Location: ' . BASE_URL . '/admin/editprofile');
+                header('Location: ' . BASE_URL . '/admin/editprofile?id=' . $id);
                 exit;
             }
 
             $existing = User::findByPhone($data['so_dien_thoai']);
             if ($existing && !empty($existing['id']) && $existing['id'] != $id) {
                 // $_SESSION['error'] = 'Số điện thoại đã được sử dụng';
-                header('Location: ' . BASE_URL . '/admin/editprofile');
+                header('Location: ' . BASE_URL . '/admin/editprofile?id=' . $id);
                 exit;
             }
 
             $ok = User::update($id, $data);
             if ($ok) {
-                $updated = User::findById($id);
-                if ($updated) $_SESSION['user'] = $updated;
+                // Chỉ cập nhật session nếu đang sửa chính mình
+                if ($id == $sessionUser['id']) {
+                    $updated = User::findById($id);
+                    if ($updated) $_SESSION['user'] = $updated;
+                }
                 // $_SESSION['success'] = 'Cập nhật hồ sơ thành công';
-                header('Location: ' . BASE_URL . '/admin/detailprofile');
+                header('Location: ' . BASE_URL . '/admin/detailprofile?id=' . $id);
                 exit;
             } else {
                 // $_SESSION['error'] = 'Lỗi khi lưu dữ liệu';
-                header('Location: ' . BASE_URL . '/admin/editprofile');
+                header('Location: ' . BASE_URL . '/admin/editprofile?id=' . $id);
                 exit;
             }
         }
@@ -402,14 +430,22 @@ class AdminController extends Controller
     public function resource()
     {
         // list kho_nha_dat
+        require_once __DIR__ . '/../Models/Collection.php';
         require_once __DIR__ . '/../Models/Property.php';
+        
+        // --- 1. Lấy ID người dùng hiện tại ---
+        // Giả sử bạn dùng class Auth như các phần trước
+        require_once __DIR__ . '/../../core/Auth.php'; 
+        $currentUser = \Auth::user();
+        $currentUserId = $currentUser['id'] ?? 0;
+        // -------------------------------------
+
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
         $status = isset($_GET['status']) ? trim($_GET['status']) : null;
         $address = isset($_GET['address']) ? trim($_GET['address']) : null;
-
-        // prefer address as explicit search term
+        
         $searchTerm = $address ?: $search;
 
         $total = Property::countByLoaiKho('kho_nha_dat', $searchTerm, $status);
@@ -418,10 +454,33 @@ class AdminController extends Controller
 
         $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
 
-        // Lấy danh sách bộ sưu tập để hiển thị trong modal
-        $db = \Database::connect();
-        $stmt = $db->query("SELECT * FROM collections WHERE trang_thai = 1 ORDER BY id DESC");
-        $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Lấy danh sách collection của user để hiển thị trong modal "Lưu"
+        $collections = Collection::getForUser($currentUserId);
+
+        // Tạo một map để kiểm tra tài sản nào đã được lưu
+        $collectionMap = [];
+        if ($currentUserId > 0 && !empty($properties)) {
+            $propertyIds = array_map(function ($p) {
+                return (int)$p['id'];
+            }, $properties);
+
+            $db = \Database::connect();
+
+            // Lấy tất cả collection IDs mà user này sở hữu
+            $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmtOwner->execute([$currentUserId]);
+            $ownedCollectionIds = $stmtOwner->fetchAll(PDO::FETCH_COLUMN);
+
+            if (!empty($ownedCollectionIds) && !empty($propertyIds)) {
+                // Tìm xem các tài sản đang hiển thị có nằm trong collection nào của user không
+                $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+                $collectionPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
+                $sqlMap = "SELECT resource_id, COUNT(id) as count FROM collection_items WHERE resource_id IN ($placeholders) AND collection_id IN ($collectionPlaceholders) GROUP BY resource_id";
+                $stmtMap = $db->prepare($sqlMap);
+                $stmtMap->execute(array_merge($propertyIds, $ownedCollectionIds));
+                $collectionMap = $stmtMap->fetchAll(PDO::FETCH_KEY_PAIR);
+            }
+        }
 
         $this->view('admin/resource', [
             'properties' => $properties,
@@ -432,7 +491,8 @@ class AdminController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -440,6 +500,14 @@ class AdminController extends Controller
     {
         // list kho_cho_thue
         require_once __DIR__ . '/../Models/Property.php';
+        require_once __DIR__ . '/../Models/Collection.php';
+
+        // --- 1. Lấy ID người dùng (Tương tự hàm trên) ---
+        require_once __DIR__ . '/../../core/Auth.php'; 
+        $currentUser = \Auth::user();
+        $currentUserId = $currentUser['id'] ?? 0;
+        // ----------------------------------------------
+
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
@@ -454,6 +522,34 @@ class AdminController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
+        // Lấy danh sách collection của user để hiển thị trong modal "Lưu"
+        $collections = Collection::getForUser($currentUserId);
+
+        // Tạo một map để kiểm tra tài sản nào đã được lưu
+        $collectionMap = [];
+        if ($currentUserId > 0 && !empty($properties)) {
+            $propertyIds = array_map(function ($p) {
+                return (int)$p['id'];
+            }, $properties);
+
+            $db = \Database::connect();
+
+            // Lấy tất cả collection IDs mà user này sở hữu
+            $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmtOwner->execute([$currentUserId]);
+            $ownedCollectionIds = $stmtOwner->fetchAll(PDO::FETCH_COLUMN);
+
+            if (!empty($ownedCollectionIds) && !empty($propertyIds)) {
+                // Tìm xem các tài sản đang hiển thị có nằm trong collection nào của user không
+                $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+                $collectionPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
+                $sqlMap = "SELECT resource_id, COUNT(id) as count FROM collection_items WHERE resource_id IN ($placeholders) AND collection_id IN ($collectionPlaceholders) GROUP BY resource_id";
+                $stmtMap = $db->prepare($sqlMap);
+                $stmtMap->execute(array_merge($propertyIds, $ownedCollectionIds));
+                $collectionMap = $stmtMap->fetchAll(PDO::FETCH_KEY_PAIR);
+            }
+        }
+
         $this->view('admin/resource-rent', [
             'properties' => $properties,
             'page' => $page,
@@ -462,14 +558,22 @@ class AdminController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            'collections' => $collections, // Dùng cho modal
+            'collectionMap' => $collectionMap // Dùng để hiển thị icon đã lưu
         ]);
     }
 
-    public function resourceSum()
+ public function resourceSum()
     {
         // list kho_nha_dat
         require_once __DIR__ . '/../Models/Property.php';
+        
+        // --- 1. Lấy ID người dùng đang đăng nhập ---
+        require_once __DIR__ . '/../../core/Auth.php';
+        $userId = \Auth::user()['id'] ?? 0;
+        // ------------------------------------------
+
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
@@ -485,10 +589,34 @@ class AdminController extends Controller
 
         $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
 
-        // Lấy danh sách bộ sưu tập để hiển thị trong modal
+        // --- 2. Sửa truy vấn: Chỉ lấy Collection của user_id này ---
         $db = \Database::connect();
-        $stmt = $db->query("SELECT * FROM collections WHERE trang_thai = 1 ORDER BY id DESC");
+        // Thêm điều kiện: user_id = :uid
+        $sql = "SELECT * FROM collections WHERE user_id = :uid AND trang_thai = 1 ORDER BY id DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['uid' => $userId]);
         $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // -----------------------------------------------------------
+
+        // --- 3. Tạo map kiểm tra tài sản đã lưu (Logic mới thêm) ---
+        $collectionMap = [];
+        if ($userId > 0 && !empty($properties)) {
+            $propertyIds = array_map(function ($p) { return (int)$p['id']; }, $properties);
+            
+            // Lấy danh sách ID bộ sưu tập của user
+            $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmtOwner->execute([$userId]);
+            $ownedCollectionIds = $stmtOwner->fetchAll(PDO::FETCH_COLUMN);
+
+            if (!empty($ownedCollectionIds) && !empty($propertyIds)) {
+                $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+                $collectionPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
+                $sqlMap = "SELECT resource_id, COUNT(id) as count FROM collection_items WHERE resource_id IN ($placeholders) AND collection_id IN ($collectionPlaceholders) GROUP BY resource_id";
+                $stmtMap = $db->prepare($sqlMap);
+                $stmtMap->execute(array_merge($propertyIds, $ownedCollectionIds));
+                $collectionMap = $stmtMap->fetchAll(PDO::FETCH_KEY_PAIR);
+            }
+        }
 
         $this->view('admin/resource_sum', [
             'properties' => $properties,
@@ -499,13 +627,21 @@ class AdminController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap // Truyền biến này xuống view
         ]);
     }
+
     public function resourceSum2()
     {
         // list kho_cho_thue
         require_once __DIR__ . '/../Models/Property.php';
+
+        // --- 1. Lấy ID người dùng đang đăng nhập (Giống hàm trên) ---
+        require_once __DIR__ . '/../../core/Auth.php';
+        $userId = \Auth::user()['id'] ?? 0;
+        // ----------------------------------------------------------
+
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 12;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
@@ -520,6 +656,35 @@ class AdminController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
+        // --- 2. Sửa truy vấn: Copy logic từ resourceSum sang ---
+        // Thay vì dùng Model::allWithCount(), ta dùng query trực tiếp để lọc theo user_id
+        $db = \Database::connect();
+        $sql = "SELECT * FROM collections WHERE user_id = :uid AND trang_thai = 1 ORDER BY id DESC";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(['uid' => $userId]);
+        $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // -----------------------------------------------------
+
+        // --- 3. Tạo map kiểm tra tài sản đã lưu (Logic mới thêm) ---
+        $collectionMap = [];
+        if ($userId > 0 && !empty($properties)) {
+            $propertyIds = array_map(function ($p) { return (int)$p['id']; }, $properties);
+            
+            // Lấy danh sách ID bộ sưu tập của user
+            $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmtOwner->execute([$userId]);
+            $ownedCollectionIds = $stmtOwner->fetchAll(PDO::FETCH_COLUMN);
+
+            if (!empty($ownedCollectionIds) && !empty($propertyIds)) {
+                $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+                $collectionPlaceholders = implode(',', array_fill(0, count($ownedCollectionIds), '?'));
+                $sqlMap = "SELECT resource_id, COUNT(id) as count FROM collection_items WHERE resource_id IN ($placeholders) AND collection_id IN ($collectionPlaceholders) GROUP BY resource_id";
+                $stmtMap = $db->prepare($sqlMap);
+                $stmtMap->execute(array_merge($propertyIds, $ownedCollectionIds));
+                $collectionMap = $stmtMap->fetchAll(PDO::FETCH_KEY_PAIR);
+            }
+        }
+
         $this->view('admin/resource_sum_2', [
             'properties' => $properties,
             'page' => $page,
@@ -529,14 +694,8 @@ class AdminController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            // load collections for save modal (only collections owned by current admin)
-            'collections' => (function () {
-                require_once __DIR__ . '/../Models/Collection.php';
-                require_once __DIR__ . '/../../core/Auth.php';
-                $user = \Auth::user();
-                $userId = $user['id'] ?? null;
-                return Collection::allWithCount(null, $userId);
-            })()
+            'collections' => $collections, // Bây giờ biến này chứa đúng dữ liệu của user
+            'collectionMap' => $collectionMap // Truyền biến này xuống view
         ]);
     }
     public function reportList()
@@ -623,7 +782,7 @@ class AdminController extends Controller
         }
 
         $db = \Database::connect();
-
+        
         // Lấy thông tin bất động sản và người đăng
         $sql = "SELECT p.*, u.ho_ten as user_name, u.so_dien_thoai as user_phone, u.avatar as user_avatar, u.phong_ban 
                 FROM properties p 
@@ -634,8 +793,8 @@ class AdminController extends Controller
         $property = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$property) {
-            header('Location: ' . BASE_URL . '/admin/management-resource');
-            exit;
+             header('Location: ' . BASE_URL . '/admin/management-resource');
+             exit;
         }
 
         // Lấy hình ảnh/media
@@ -644,10 +803,10 @@ class AdminController extends Controller
         if (method_exists('Property', 'getMedia')) {
             $media = Property::getMedia($id);
         } else {
-            $sqlMedia = "SELECT * FROM property_media WHERE property_id = :id";
-            $stmtMedia = $db->prepare($sqlMedia);
-            $stmtMedia->execute([':id' => $id]);
-            $media = $stmtMedia->fetchAll(PDO::FETCH_ASSOC);
+             $sqlMedia = "SELECT * FROM property_media WHERE property_id = :id";
+             $stmtMedia = $db->prepare($sqlMedia);
+             $stmtMedia->execute([':id' => $id]);
+             $media = $stmtMedia->fetchAll(PDO::FETCH_ASSOC);
         }
         $property['media'] = $media;
 
@@ -656,26 +815,70 @@ class AdminController extends Controller
 
     public function addToCollection()
     {
+        // Xóa bộ đệm đầu ra để đảm bảo JSON sạch (tránh lỗi do khoảng trắng hoặc warning)
+        if (ob_get_length()) ob_clean();
+        
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Thêm kiểm tra CSRF token để server chấp nhận yêu cầu
+            require_once __DIR__ . '/../Helpers/functions.php';
+            if (!verify_csrf($_POST['_csrf'] ?? null)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Token bảo mật không hợp lệ.']);
+                exit;
+            }
+
             $propertyId = $_POST['property_id'] ?? null;
-            // Luôn đảm bảo collectionIds là một mảng, kể cả khi không có checkbox nào được chọn
-            $collectionIds = $_POST['collection_ids'] ?? [];
+            $collectionIds = $_POST['collections'] ?? [];
+
+            // Lấy ID người dùng hiện tại để bảo mật
+            require_once __DIR__ . '/../../core/Auth.php';
+            $user = \Auth::user();
+            $userId = $user['id'] ?? 0;
+
+            if (!$userId) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập.']);
+                exit;
+            }
 
             if ($propertyId) {
                 $db = \Database::connect();
                 try {
                     $db->beginTransaction();
 
-                    // 1. Xóa tất cả các liên kết cũ của tài nguyên này
-                    $delStmt = $db->prepare("DELETE FROM collection_items WHERE property_id = ?");
-                    $delStmt->execute([$propertyId]);
+                    // 1. Lấy danh sách ID các bộ sưu tập mà user này sở hữu
+                    $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+                    $stmtOwner->execute([$userId]);
+                    $userOwnedCollections = $stmtOwner->fetchAll(PDO::FETCH_COLUMN);
 
-                    // 2. Thêm lại các liên kết mới được chọn
+                    // Chỉ thực hiện nếu user có collection
+                    if (!empty($userOwnedCollections)) {
+                        // 2. Xóa tài nguyên này khỏi TẤT CẢ bộ sưu tập CỦA USER (Reset trạng thái)
+                        $placeholders = implode(',', array_fill(0, count($userOwnedCollections), '?'));
+                        
+                        // SỬA LỖI: Dùng `resource_id` thay vì `property_id`
+                        $sqlDelete = "DELETE FROM collection_items 
+                                      WHERE resource_id = ? 
+                                      AND collection_id IN ($placeholders)";
+                        
+                        $paramsDelete = array_merge([$propertyId], $userOwnedCollections);
+                        $stmtDelete = $db->prepare($sqlDelete);
+                        $stmtDelete->execute($paramsDelete);
+                    }
+
+                    // 3. Thêm lại vào các bộ sưu tập được chọn (và user này sở hữu)
                     if (!empty($collectionIds)) {
-                        $insStmt = $db->prepare("INSERT INTO collection_items (collection_id, property_id) VALUES (?, ?)");
-                        foreach ($collectionIds as $cid) {
-                            $insStmt->execute([(int)$cid, $propertyId]);
+                        // SỬA LỖI: Dùng `resource_id` và thêm `resource_type`
+                        $sqlInsert = "INSERT INTO collection_items (collection_id, resource_id, resource_type) VALUES (?, ?, 'bat_dong_san')";
+                        $stmtInsert = $db->prepare($sqlInsert);
+
+                        foreach ($collectionIds as $cId) {
+                            $cId = (int)$cId;
+                            // Chỉ thêm nếu collection ID được chọn nằm trong danh sách collection của user
+                            if (in_array($cId, $userOwnedCollections)) {
+                                $stmtInsert->execute([$cId, $propertyId]);
+                            }
                         }
                     }
 
@@ -692,29 +895,132 @@ class AdminController extends Controller
         }
     }
 
+  // --- HÀM 1: Lấy danh sách Collection đã tick (ĐÃ SỬA: Chỉ lấy của User đang đăng nhập) ---
     public function getPropertyCollections()
     {
-        header('Content-Type: application/json');
-        $id = $_GET['id'] ?? 0;
-        if ($id) {
-            require_once __DIR__ . '/../../core/Auth.php';
-            $user = \Auth::user();
-            $userId = $user['id'] ?? 0;
+        // 1. Dọn sạch bộ đệm để tránh lỗi cú pháp JSON
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json; charset=utf-8');
+
+        // 2. Lấy User ID
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        $resourceId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+        if ($userId && $resourceId) {
             $db = \Database::connect();
             try {
-                $stmt = $db->prepare("SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.property_id = ? AND c.user_id = ?");
-                $stmt->execute([(int)$id, (int)$userId]);
-                $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                // SỬA LỖI: Join bảng collections để chỉ lấy ID collection của chính user này
+                $sql = "SELECT ci.collection_id 
+                        FROM collection_items ci
+                        JOIN collections c ON ci.collection_id = c.id
+                        WHERE ci.resource_id = ? AND c.user_id = ?";
+                
+                $stmt = $db->prepare($sql);
+                $stmt->execute([$resourceId, $userId]);
+                
+                // Sử dụng \PDO để tránh lỗi namespace nếu chưa use PDO
+                $ids = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+                
                 echo json_encode(['success' => true, 'collection_ids' => $ids]);
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
             }
         } else {
-            echo json_encode(['success' => false]);
+            echo json_encode(['success' => false, 'message' => 'Thiếu ID hoặc chưa đăng nhập']);
         }
         exit;
     }
 
+    // --- HÀM 2: Lưu/Xóa Collection Đồng bộ (ĐÃ SỬA: Xử lý bỏ tick) ---
+    public function saveToCollections()
+    {
+        // 1. Xóa buffer rác
+        while (ob_get_level()) { ob_end_clean(); }
+        header('Content-Type: application/json; charset=utf-8');
+
+        // 2. Kiểm tra method
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['ok' => false, 'message' => 'Method not allowed']);
+            exit;
+        }
+
+        try {
+            // 3. Nhận dữ liệu JSON
+            $inputJSON = file_get_contents('php://input');
+            $input = json_decode($inputJSON, true);
+
+            if (!$input) throw new \Exception('Dữ liệu không hợp lệ');
+
+            // 4. Kiểm tra CSRF
+            require_once __DIR__ . '/../Helpers/functions.php';
+            if (!verify_csrf($input['_csrf'] ?? null)) {
+                throw new \Exception('Token bảo mật không hợp lệ');
+            }
+
+            // 5. Lấy User và Dữ liệu
+            require_once __DIR__ . '/../../core/Auth.php';
+            $user = \Auth::user();
+            $userId = $user['id'] ?? 0;
+            
+            $propertyId = isset($input['property_id']) ? (int)$input['property_id'] : 0;
+            // Mảng các collection ID được tick (nếu bỏ tick hết thì mảng rỗng)
+            $selectedCollectionIds = isset($input['collections']) && is_array($input['collections']) ? $input['collections'] : [];
+
+            if (!$userId || $propertyId <= 0) {
+                throw new \Exception('Thiếu thông tin người dùng hoặc tài nguyên');
+            }
+
+            $db = \Database::connect();
+            $db->beginTransaction();
+
+            // BƯỚC A: Lấy danh sách TẤT CẢ bộ sưu tập mà User này sở hữu (để bảo mật)
+            $stmtOwner = $db->prepare("SELECT id FROM collections WHERE user_id = ?");
+            $stmtOwner->execute([$userId]);
+            $userOwnedCollections = $stmtOwner->fetchAll(\PDO::FETCH_COLUMN);
+
+            if (!empty($userOwnedCollections)) {
+                // Tạo chuỗi placeholder (?,?,?) cho câu lệnh IN
+                $placeholders = implode(',', array_fill(0, count($userOwnedCollections), '?'));
+
+                // BƯỚC B: XÓA tài nguyên này khỏi TẤT CẢ bộ sưu tập của User này (Reset trạng thái)
+                // Đây là bước quan trọng để xử lý việc "Bỏ tick"
+                $sqlDelete = "DELETE FROM collection_items 
+                              WHERE resource_id = ? 
+                              AND collection_id IN ($placeholders)";
+                
+                // Tham số: [property_id, col_id_1, col_id_2, ...]
+                $paramsDelete = array_merge([$propertyId], $userOwnedCollections);
+                $stmtDelete = $db->prepare($sqlDelete);
+                $stmtDelete->execute($paramsDelete);
+
+                // BƯỚC C: THÊM LẠI vào các bộ sưu tập được chọn
+                if (!empty($selectedCollectionIds)) {
+                    $sqlInsert = "INSERT INTO collection_items (collection_id, resource_id, resource_type) VALUES (?, ?, 'bat_dong_san')";
+                    $stmtInsert = $db->prepare($sqlInsert);
+
+                    foreach ($selectedCollectionIds as $cId) {
+                        $cId = (int)$cId;
+                        // Chỉ thêm nếu collection ID đó thực sự thuộc về user (Chặn hack ID)
+                        if (in_array($cId, $userOwnedCollections)) {
+                            $stmtInsert->execute([$cId, $propertyId]);
+                        }
+                    }
+                }
+            }
+
+            $db->commit();
+            // Trả về cả 2 key 'ok' và 'success' để JS bắt cái nào cũng được
+            echo json_encode(['ok' => true, 'success' => true]); 
+
+        } catch (\Throwable $e) {
+            if (isset($db) && $db->inTransaction()) $db->rollBack();
+            // Trả về HTTP 200 nhưng json báo lỗi để JS alert ra
+            echo json_encode(['ok' => false, 'success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
     public function collection()
     {
         require_once __DIR__ . '/../Models/Collection.php';
@@ -723,12 +1029,68 @@ class AdminController extends Controller
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
         $user = \Auth::user();
         $userId = $user['id'] ?? null;
-        // Show only collections owned by current admin
-        $collections = Collection::allWithCount($search, $userId);
+        $userRole = \Auth::role();
+
+        // Super admin thấy tất cả, admin chỉ thấy của mình
+        $filterUserId = null;
+        if ($userRole !== 'super_admin') {
+            $filterUserId = $userId;
+        }
+        $collections = Collection::allWithCount($search, $filterUserId);
+        
+        // Kiểm tra file ảnh thực tế, nếu không tồn tại thì gán null để tránh lỗi 404 ở View
+        foreach ($collections as &$col) {
+            if (!empty($col['anh_dai_dien'])) {
+                $physPath = __DIR__ . '/../../public/' . $col['anh_dai_dien'];
+                if (!file_exists($physPath)) $col['anh_dai_dien'] = null;
+            }
+        }
 
         $this->view('admin/collection', [
             'collections' => $collections,
-            'search' => $search
+            'search' => $search,
+            'currentUser' => $user,
+            'currentUserRole' => $userRole
+        ]);
+    }
+
+    public function collectionDetail()
+    {
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../Models/Property.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID bộ sưu tập không hợp lệ.';
+            header('Location: ' . BASE_URL . '/admin/collection');
+            exit;
+        }
+
+        $collection = Collection::getById($id);
+        if (!$collection) {
+            $_SESSION['error'] = 'Không tìm thấy bộ sưu tập.';
+            header('Location: ' . BASE_URL . '/admin/collection');
+            exit;
+        }
+
+        // Read optional filters from query string
+        $filters = [];
+        if (isset($_GET['q']) && trim($_GET['q']) !== '') $filters['q'] = trim($_GET['q']);
+        if (isset($_GET['status']) && trim($_GET['status']) !== '' && trim($_GET['status']) !== 'all') $filters['status'] = trim($_GET['status']);
+        if (isset($_GET['address']) && trim($_GET['address']) !== '') $filters['address'] = trim($_GET['address']);
+
+        $items = Collection::getItems($id, 'bat_dong_san', $filters);
+
+        $user = \Auth::user();
+        $userRole = \Auth::role();
+
+        $this->view('admin/collection-detail', [
+            'collection' => $collection,
+            'items' => $items,
+            'filters' => $filters,
+            'currentUser' => $user,
+            'currentUserRole' => $userRole
         ]);
     }
 
@@ -921,6 +1283,143 @@ class AdminController extends Controller
         $this->view('admin/cre-notification', ['user' => $user]);
     }
 
+    public function editNotification()
+    {
+        require_once __DIR__ . '/../Models/DealPost.php';
+        require_once __DIR__ . '/../Helpers/functions.php';
+
+        $id = $_GET['id'] ?? 0;
+        if (empty($id) || !is_numeric($id)) {
+            $_SESSION['error'] = 'ID bài viết không hợp lệ.';
+            header('Location: ' . BASE_URL . '/admin/notification');
+            exit;
+        }
+        $id = (int)$id;
+
+        // Handle POST for update
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!verify_csrf($_POST['_csrf'] ?? null)) {
+                $_SESSION['error'] = 'Token bảo mật không hợp lệ.';
+                header('Location: ' . BASE_URL . '/admin/edit-notification?id=' . $id);
+                exit;
+            }
+
+            $tieu_de = trim($_POST['tieu_de'] ?? '');
+            $noi_dung = trim($_POST['noi_dung'] ?? '');
+            $errors = [];
+
+            if (empty($tieu_de)) $errors[] = 'Tiêu đề không được để trống.';
+            if (empty(strip_tags($noi_dung))) $errors[] = 'Nội dung không được để trống.';
+
+            // Handle removed images
+            if (!empty($_POST['remove_images']) && is_array($_POST['remove_images'])) {
+                foreach ($_POST['remove_images'] as $imgId) {
+                    if ((int)$imgId > 0) DealPost::deleteImageById((int)$imgId);
+                }
+            }
+
+            // Handle new uploads
+            $saved = [];
+            $uploadDir = __DIR__ . '/../../public/uploads/deal_posts';
+            if (!is_dir($uploadDir)) @mkdir($uploadDir, 0755, true);
+
+            if (!empty($_FILES['images']) && is_array($_FILES['images']['tmp_name'])) {
+                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'];
+                $maxSize = 20 * 1024 * 1024; // 20MB
+                for ($i = 0; $i < count($_FILES['images']['tmp_name']); $i++) {
+                    $err = $_FILES['images']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                    if ($err === UPLOAD_ERR_NO_FILE) continue;
+                    if ($err !== UPLOAD_ERR_OK) {
+                        $errors[] = 'Lỗi upload file ' . ($_FILES['images']['name'][$i] ?? '') . '.';
+                        continue;
+                    }
+                    $tmp = $_FILES['images']['tmp_name'][$i];
+                    if (filesize($tmp) > $maxSize) {
+                        $errors[] = 'Kích thước file quá lớn (max 20MB): ' . ($_FILES['images']['name'][$i] ?? '');
+                        continue;
+                    }
+                    $orig = basename($_FILES['images']['name'][$i]);
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                    $filename = uniqid('deal_') . '.' . $ext;
+                    $dest = $uploadDir . '/' . $filename;
+                    if (@move_uploaded_file($tmp, $dest)) {
+                        $saved[] = 'uploads/deal_posts/' . $filename;
+                    } else {
+                        $errors[] = 'Không thể lưu file: ' . $orig;
+                    }
+                }
+            }
+
+            if (empty($errors)) {
+                $db = Database::connect();
+                $stmt = $db->prepare("UPDATE deal_posts SET tieu_de = :tieu_de, noi_dung = :noi_dung WHERE id = :id");
+                $stmt->execute([
+                    ':tieu_de' => $tieu_de,
+                    ':noi_dung' => $noi_dung,
+                    ':id' => $id
+                ]);
+
+                if (!empty($saved)) {
+                    DealPost::addImages($id, $saved);
+                }
+                $_SESSION['success'] = 'Cập nhật bài viết thành công.';
+            } else {
+                $_SESSION['errors'] = $errors;
+            }
+            header('Location: ' . BASE_URL . '/admin/edit-notification?id=' . $id);
+            exit;
+        }
+
+        // Handle GET to show form
+        $post = DealPost::getById($id);
+        if (!$post) {
+            $_SESSION['error'] = 'Không tìm thấy bài viết.';
+            header('Location: ' . BASE_URL . '/admin/notification');
+            exit;
+        }
+
+        $this->view('admin/edit-notification', ['post' => $post]);
+    }
+
+    public function deleteNotification()
+    {
+        // Ensure this is an AJAX/JSON request
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'message' => 'Method Not Allowed']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/DealPost.php';
+        require_once __DIR__ . '/../Helpers/functions.php';
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id = $input['id'] ?? null;
+        $token = $input['_csrf'] ?? null;
+
+        if (!verify_csrf($token)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Token bảo mật không hợp lệ.']);
+            exit;
+        }
+
+        if (empty($id) || !is_numeric($id)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'ID bài viết không hợp lệ.']);
+            exit;
+        }
+
+        $ok = DealPost::deleteById((int)$id);
+        if ($ok) {
+            echo json_encode(['ok' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'Xóa bài viết thất bại.']);
+        }
+        exit;
+    }
+
     public function autoMatch()
     {
         // Nếu là POST, chuyển hướng sang GET với các tham số
@@ -931,6 +1430,7 @@ class AdminController extends Controller
             if (!empty($_POST['price'])) $qs['price'] = $_POST['price'];
             if (!empty($_POST['legal'])) $qs['legal'] = $_POST['legal'];
             if (!empty($_POST['area'])) $qs['area'] = $_POST['area'];
+            $qs['searched'] = 1; // Đánh dấu là đã bấm tìm kiếm
             $qs = http_build_query($qs);
             header('Location: ' . BASE_URL . '/admin/auto-match' . ($qs ? ('?' . $qs) : ''));
             exit;
@@ -947,8 +1447,8 @@ class AdminController extends Controller
         $properties = null; // Khởi tạo là null để không hiển thị gì ban đầu
 
         // Chỉ thực hiện tìm kiếm nếu có ít nhất một tham số được gửi lên (người dùng đã bấm tìm kiếm)
-        if (isset($_GET['type']) || isset($_GET['location']) || isset($_GET['price']) || isset($_GET['legal']) || isset($_GET['area'])) {
-            $db = Database::connect();
+        if (isset($_GET['searched']) || isset($_GET['type']) || isset($_GET['location']) || isset($_GET['price']) || isset($_GET['legal']) || isset($_GET['area'])) {
+            $db = \Database::connect();
             $sql = "SELECT * FROM properties WHERE 1=1";
             $params = [];
 
@@ -978,7 +1478,7 @@ class AdminController extends Controller
                 $params[] = $area;
             }
 
-            $sql .= " ORDER BY id DESC LIMIT 100";
+            $sql .= " ORDER BY id DESC LIMIT 10";
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
             $properties = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1170,7 +1670,7 @@ class AdminController extends Controller
 
         $posts = InternalPost::getActive($perPage, $offset, $search);
 
-        $this->view('superadmin/internal-info-list', [
+        $this->view('admin/internal-info-list', [
             'posts' => $posts,
             'page' => $page,
             'pages' => $pages,
@@ -1206,7 +1706,7 @@ class AdminController extends Controller
 
         // Kiểm tra request JSON hay Form thường
         $isJson = (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-            (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
+                  (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
 
         // Validate Token
         if (!verify_csrf($token)) {
@@ -1240,12 +1740,12 @@ class AdminController extends Controller
             // Bắt lỗi SQL (ví dụ: lỗi khóa ngoại chưa xóa ảnh)
             $ok = false;
             // Ghi log lỗi nếu cần: error_log($e->getMessage());
-
+            
             // Nếu là JSON, trả về lỗi chi tiết để hiển thị lên màn hình
             if ($isJson) {
                 http_response_code(500); // Báo lỗi server
                 echo json_encode([
-                    'ok' => false,
+                    'ok' => false, 
                     'message' => 'Lỗi Server: ' . $e->getMessage() // Quan trọng: Xem lỗi gì ở đây
                 ]);
                 exit;
@@ -1387,7 +1887,7 @@ class AdminController extends Controller
 
         $this->view('admin/internal-info-edit', ['post' => $post]);
     }
-    public function termsService()
+     public function termsService()
     {
         $this->view('admin/terms-service');
     }
