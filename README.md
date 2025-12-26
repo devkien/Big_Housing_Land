@@ -97,3 +97,5 @@ Big_Housing_Land/
     *   Mở file `config/database.php` và cập nhật các thông tin `host`, `dbname`, `username`, `password` cho phù hợp với môi trường của bạn.
     *   Import file `.sql` (nếu có) để tạo các bảng cần thiết.
 4.  **Truy cập**: Mở trình duyệt và truy cập vào địa chỉ localhost của bạn (ví dụ: `http://localhost/Big_Housing_Land`).
+
+#devkien
