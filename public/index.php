@@ -111,6 +111,7 @@ $router->post('/collection-rename', 'MainController@renameCollection', 'auth');
 $router->post('/collection-delete', 'MainController@deleteCollection', 'auth');
 $router->post('/add-to-collection', 'MainController@addToCollection', 'auth');
 $router->get('/get-property-collections', 'MainController@getPropertyCollections', 'auth');
+$router->post('/collection-remove-item', 'MainController@removeFromCollection', 'auth');
 $router->get('/policy', 'MainController@policy', 'auth');
 $router->get('/info', 'MainController@info', 'auth');
 $router->get('/internal-info-detail', 'MainController@internalInfoDetail', 'auth');

@@ -288,6 +288,13 @@ class MainController extends Controller
         $userId = $user['id'] ?? 0;
         $collections = Collection::getForUser($userId);
 
+        // Build collection counts map for the displayed properties so the view
+        // can render bookmark icons as filled when a resource belongs to any collection.
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_nha_dat', $userId);
+
         $this->view('main/resource', [
             'properties' => $properties,
             'page' => $page,
@@ -297,7 +304,8 @@ class MainController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -319,6 +327,17 @@ class MainController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
+        // load collections and collection map for current user so views can show saved state
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+        $collections = Collection::getForUser($userId);
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_cho_thue', $userId);
+
         $this->view('main/resource-rent', [
             'properties' => $properties,
             'page' => $page,
@@ -327,7 +346,9 @@ class MainController extends Controller
             'perPage' => $perPage,
             'search' => $search,
             'status' => $status,
-            'address' => $address
+            'address' => $address,
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
 
@@ -355,6 +376,10 @@ class MainController extends Controller
         $user = \Auth::user();
         $userId = $user['id'] ?? 0;
         $collections = Collection::getForUser($userId);
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_nha_dat', $userId);
 
         $this->view('main/resource_sum', [
             'properties' => $properties,
@@ -365,7 +390,8 @@ class MainController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
     public function resourceSum2()
@@ -392,6 +418,11 @@ class MainController extends Controller
         $user = \Auth::user();
         $userId = $user['id'] ?? 0;
         $collections = Collection::getForUser($userId);
+        $propertyIds = array_map(function ($r) {
+            return (int)($r['id'] ?? 0);
+        }, $properties);
+        // resource type for this view is kho_cho_thue
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_cho_thue', $userId);
 
         $this->view('main/resource_sum2', [
             'properties' => $properties,
@@ -402,7 +433,8 @@ class MainController extends Controller
             'search' => $search,
             'status' => $status,
             'address' => $address,
-            'collections' => $collections
+            'collections' => $collections,
+            'collectionMap' => $collectionMap
         ]);
     }
     public function reportList()
@@ -710,6 +742,7 @@ class MainController extends Controller
 
         $propertyId = $_POST['property_id'] ?? null;
         $collectionIds = $_POST['collection_ids'] ?? [];
+        $resourceType = isset($_POST['resource_type']) ? trim($_POST['resource_type']) : 'bat_dong_san';
 
         if (empty($propertyId) || !is_numeric($propertyId)) {
             http_response_code(400);
@@ -717,7 +750,7 @@ class MainController extends Controller
             exit;
         }
 
-        $ok = Collection::savePropertyToCollections((int)$propertyId, (array)$collectionIds, $userId);
+        $ok = Collection::savePropertyToCollections((int)$propertyId, (array)$collectionIds, $userId, $resourceType);
 
         if ($ok) {
             echo json_encode(['success' => true]);
@@ -725,6 +758,36 @@ class MainController extends Controller
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Database error']);
         }
+        exit;
+    }
+
+    public function removeFromCollection()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+            exit;
+        }
+
+        require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
+
+        $user = \Auth::user();
+        $userId = $user['id'] ?? 0;
+
+        $collectionId = isset($_POST['collection_id']) ? (int)$_POST['collection_id'] : 0;
+        $resourceId = isset($_POST['resource_id']) ? (int)$_POST['resource_id'] : 0;
+        $resourceType = isset($_POST['resource_type']) ? trim($_POST['resource_type']) : 'bat_dong_san';
+
+        if ($collectionId <= 0 || $resourceId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $ok = Collection::removeItem($collectionId, $resourceId, $userId, $resourceType, false);
+        echo json_encode(['ok' => (bool)$ok]);
         exit;
     }
 

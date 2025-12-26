@@ -16,6 +16,10 @@
             }
         };
     </script>
+    <script>
+        window.BASE_PATH = '<?= BASE_PATH ?>';
+        window.CURRENT_RESOURCE_TYPE = 'kho_nha_dat';
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
@@ -77,7 +81,8 @@
                             }
                         ?>
                             <tr onclick="window.location.href='<?= BASE_URL ?>/detail?id=<?= htmlspecialchars($p['id']) ?>'">
-                                <td style="padding-left:15px; cursor: pointer;" class="action-cell-save" data-id="<?= $p['id'] ?>" onclick="event.stopPropagation()"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                                <?php $inCount = isset($collectionMap[(int)$p['id']]) ? (int)$collectionMap[(int)$p['id']] : 0; ?>
+                                <td style="padding-left:15px; cursor: pointer;" class="action-cell-save" data-id="<?= $p['id'] ?>" onclick="event.stopPropagation()"><i class="<?= $inCount > 0 ? 'fa-solid saved' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i></td>
                                 <td><?= $code ?></td>
                                 <td><?= $created ?></td>
                                 <td><span class="status-badge strong"><?= htmlspecialchars($status) ?></span></td>
@@ -183,95 +188,17 @@
                 </div>
             </div>
         </div>
-        <div id="bottom-nav-container">
-            <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
-        </div>
-    </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const filterModal = document.getElementById('filter-modal');
-        const searchModal = document.getElementById('search-modal');
-        const saveCollectionModal = document.getElementById('save-collection-modal');
-        
-        const btnFilter = document.getElementById('btn-filter');
-        const closeFilter = document.getElementById('close-filter');
-        const closeSearch = document.getElementById('close-search');
-        const closeSaveCollection = document.getElementById('close-save-collection');
-        const confirmSaveBtn = document.getElementById('confirm-save-collection');
-        
-        const cellSaves = document.querySelectorAll('.action-cell-save');
-        let currentPropertyId = null;
-
-        if (btnFilter) btnFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'flex'; });
-        if (closeFilter) closeFilter.addEventListener('click', () => { if(filterModal) filterModal.style.display = 'none'; });
-        if (closeSearch) closeSearch.addEventListener('click', () => { if(searchModal) searchModal.style.display = 'none'; });
-        if (closeSaveCollection) closeSaveCollection.addEventListener('click', () => { if(saveCollectionModal) saveCollectionModal.style.display = 'none'; });
-
-        // Xử lý click nút Lưu trên mỗi dòng
-        cellSaves.forEach(cell => {
-            cell.addEventListener('click', (e) => {
-                e.stopPropagation();
-                currentPropertyId = cell.getAttribute('data-id');
-                
-                const checkboxes = saveCollectionModal.querySelectorAll('input[name="collection"]');
-                checkboxes.forEach(cb => cb.checked = false);
-
-                // Fetch các bộ sưu tập đã lưu của tài nguyên này
-                fetch('<?= BASE_URL ?>/get-property-collections?id=' + currentPropertyId)
-                    .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
-                    .then(data => {
-                        if(data.success && data.collection_ids) {
-                            data.collection_ids.forEach(cid => {
-                                const cb = saveCollectionModal.querySelector(`input[name="collection"][value="${cid}"]`);
-                                if(cb) cb.checked = true;
-                            });
-                        }
-                    })
-                    .catch(e => console.error('Lỗi tải bộ sưu tập:', e))
-                    .finally(() => {
-                        if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
-                    });
-            });
+        <!-- Inline page script removed. Centralized handlers live in public/js/script.js to avoid duplicate listeners. -->
         });
-
-        // Xử lý nút "Lưu" trong modal
-        if (confirmSaveBtn) {
-            confirmSaveBtn.addEventListener('click', () => {
-                if (!currentPropertyId) return;
-                
-                const selected = Array.from(saveCollectionModal.querySelectorAll('input[name="collection"]:checked')).map(cb => cb.value);
-
-                const formData = new FormData();
-                formData.append('property_id', currentPropertyId);
-                selected.forEach(id => formData.append('collection_ids[]', id));
-
-                fetch('<?= BASE_URL ?>/add-to-collection', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.ok ? r.json() : Promise.reject('Lỗi server'))
-                .then(data => {
-                    if(data.success) {
-                        alert('Đã lưu vào bộ sưu tập!');
-                        if (saveCollectionModal) saveCollectionModal.style.display = 'none';
-                    } else {
-                        alert('Lỗi: ' + (data.message || 'Không thể lưu.'));
-                    }
-                })
-                .catch(e => {
-                    console.error(e);
-                    alert('Có lỗi xảy ra khi lưu. Vui lòng kiểm tra lại.');
-                });
-            });
         }
 
         window.addEventListener('click', (event) => {
-            if (event.target == filterModal) filterModal.style.display = 'none';
-            if (event.target == searchModal) searchModal.style.display = 'none';
-            if (event.target == saveCollectionModal) saveCollectionModal.style.display = 'none';
+        if (event.target == filterModal) filterModal.style.display = 'none';
+        if (event.target == searchModal) searchModal.style.display = 'none';
+        if (event.target == saveCollectionModal) saveCollectionModal.style.display = 'none';
         });
-    });
-    </script>
+        });
+        </script>
 </body>
 
 </html>

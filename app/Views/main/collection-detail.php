@@ -100,7 +100,8 @@
                             ?>
                             <tr data-id="<?= htmlspecialchars($p['id']) ?>">
                                 <td style="padding-left:15px;">
-                                    <i class="fa-solid fa-bookmark icon-save saved" data-ci="<?= $ci_id ?>" data-resource-id="<?= (int)$p['id'] ?>" data-resource-type="bat_dong_san" title="Bỏ khỏi bộ sưu tập" style="color:#ffcc00; cursor:pointer;"></i>
+                                    <?php $rtype = htmlspecialchars($p['resource_type'] ?? 'bat_dong_san'); ?>
+                                    <i class="fa-solid fa-bookmark icon-save saved" data-ci="<?= $ci_id ?>" data-resource-id="<?= (int)$p['id'] ?>" data-resource-type="<?= $rtype ?>" title="Bỏ khỏi bộ sưu tập" style="color:#ffcc00; cursor:pointer;"></i>
                                 </td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td style="cursor:pointer; color:#0b66ff;" onclick="window.location.href='<?= BASE_URL ?>/detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
@@ -320,7 +321,7 @@
                     fd.append('resource_id', currentRemove.resource_id);
                     fd.append('resource_type', currentRemove.resource_type);
 
-                    fetch('<?= BASE_URL ?>/superadmin/collection-remove-item', {
+                    fetch('<?= BASE_URL ?>/collection-remove-item', {
                         method: 'POST',
                         credentials: 'same-origin',
                         body: fd

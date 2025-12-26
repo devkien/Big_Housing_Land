@@ -81,7 +81,6 @@
         </div>
 
     </div>
-    <script src="../Public/Js/script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('report-search-input');

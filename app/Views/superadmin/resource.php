@@ -12,6 +12,7 @@
     <meta name="csrf-token" content="<?= csrf_token() ?>">
     <script>
         window.BASE_PATH = '<?= BASE_PATH ?>';
+        window.CURRENT_RESOURCE_TYPE = 'kho_nha_dat';
     </script>
 </head>
 
@@ -108,7 +109,7 @@
                             <tr data-id="<?= htmlspecialchars($p['id']) ?>">
                                 <?php $inCount = isset($collectionMap[(int)$p['id']]) ? (int)$collectionMap[(int)$p['id']] : 0; ?>
                                 <td style="padding-left:15px;">
-                                    <i class="<?= $inCount > 0 ? 'fa-solid' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i>
+                                    <i class="<?= $inCount > 0 ? 'fa-solid saved' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i>
                                 </td>
                                 <td><i class="fa-regular fa-note-sticky icon-note"></i></td>
                                 <td style="cursor:pointer; color:#0b66ff;" onclick="window.location.href='<?= BASE_URL ?>/superadmin/management-resource-detail?id=<?= htmlspecialchars($p['id']) ?>'"><?= $code ?></td>
@@ -232,127 +233,7 @@
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
-    <script>
-        (function() {
-            window.CURRENT_RESOURCE_TYPE = 'kho_nha_dat';
-
-            function qs(sel, ctx) {
-                return (ctx || document).querySelector(sel);
-            }
-
-            function qsa(sel, ctx) {
-                return Array.prototype.slice.call((ctx || document).querySelectorAll(sel));
-            }
-            var modal = qs('#save-collection-modal');
-            if (!modal) return;
-            modal.style.display = 'none';
-            var closeBtn = qs('#close-save-collection');
-            var confirmBtn = qs('#confirm-save-collection');
-            var currentPropertyId = null;
-
-            qsa('.icon-save').forEach(function(el) {
-                el.addEventListener('click', function(ev) {
-                    ev.stopPropagation();
-                    var tr = el.closest('tr');
-                    currentPropertyId = tr ? tr.getAttribute('data-id') : null;
-                    // reset checkboxes first
-                    qsa('#save-collection-modal input[type=checkbox]').forEach(function(cb) {
-                        cb.checked = false;
-                    });
-                    if (modal) modal.setAttribute('data-property-id', currentPropertyId || '');
-
-                    // fetch current membership and pre-check matching collections
-                    if (currentPropertyId) {
-                        fetch(window.BASE_PATH + '/superadmin/get-collections-for-property?property_id=' + encodeURIComponent(currentPropertyId), {
-                                credentials: 'same-origin'
-                            })
-                            .then(function(res) {
-                                return res.json();
-                            })
-                            .then(function(json) {
-                                if (json && json.ok && Array.isArray(json.collections)) {
-                                    json.collections.forEach(function(cid) {
-                                        var cb = qs('#save-collection-modal input[type=checkbox][value="' + cid + '"]');
-                                        if (cb) cb.checked = true;
-                                    });
-                                }
-                                modal.style.display = 'block';
-                            }).catch(function(err) {
-                                console.error(err);
-                                // still show modal if fetch fails
-                                modal.style.display = 'block';
-                            });
-                    } else {
-                        modal.style.display = 'block';
-                    }
-                });
-            });
-
-            if (closeBtn) closeBtn.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-            // clicking outside modal-content closes it
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) modal.style.display = 'none';
-            });
-
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', function() {
-                    var selected = qsa('#save-collection-modal input[type=checkbox]:checked').map(function(cb) {
-                        return cb.value;
-                    });
-                    if (!currentPropertyId) return window.showAlert('warning', 'Không xác định tài nguyên');
-                    if (selected.length === 0) return window.showAlert('warning', 'Vui lòng chọn ít nhất một bộ sưu tập');
-
-                    var payload = {
-                        property_id: parseInt(currentPropertyId, 10),
-                        collections: selected.map(function(v) {
-                            return parseInt(v, 10);
-                        }),
-                        _csrf: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    };
-
-                    fetch(window.BASE_PATH + '/superadmin/save-to-collections', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload),
-                        credentials: 'same-origin'
-                    }).then(function(res) {
-                        return res.json();
-                    }).then(function(json) {
-                        if (json.ok) {
-                            // update counts in modal UI
-                            selected.forEach(function(cid) {
-                                var cb = qs('#save-collection-modal input[value="' + cid + '"]');
-                                if (cb) {
-                                    var span = cb.nextElementSibling;
-                                    if (span) {
-                                        var m = span.textContent.match(/\((\d+)\)$/);
-                                        if (m) {
-                                            var n = parseInt(m[1], 10) + 1;
-                                            span.textContent = span.textContent.replace(/\(\d+\)$/, '(' + n + ')');
-                                        } else {
-                                            span.textContent = span.textContent + ' (1)';
-                                        }
-                                    }
-                                }
-                            });
-                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công.');
-                        } else {
-                            window.showAlert('error', 'Lỗi: ' + (json.message || 'Không xác định'));
-                        }
-                        modal.style.display = 'none';
-                    }).catch(function(err) {
-                        console.error(err);
-                        window.showAlert('error', 'Lỗi khi kết nối server');
-                        modal.style.display = 'none';
-                    });
-                });
-            }
-        });
-    </script>
+    <!-- Inline duplicate modal handler removed. Use public/js/script.js central handler. -->
 </body>
 
 </html>

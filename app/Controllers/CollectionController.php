@@ -12,9 +12,12 @@ class CollectionController extends Controller
     public function collection()
     {
         require_once __DIR__ . '/../Models/Collection.php';
+        require_once __DIR__ . '/../../core/Auth.php';
 
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
-        $collections = Collection::allWithCount($search);
+        $user = \Auth::user();
+        $userId = $user['id'] ?? null;
+        $collections = Collection::allWithCount($search, $userId);
 
         $this->view('superadmin/collection', [
             'collections' => $collections,
@@ -47,7 +50,8 @@ class CollectionController extends Controller
         if (isset($_GET['status']) && trim($_GET['status']) !== '' && trim($_GET['status']) !== 'all') $filters['status'] = trim($_GET['status']);
         if (isset($_GET['address']) && trim($_GET['address']) !== '') $filters['address'] = trim($_GET['address']);
 
-        $items = Collection::getItems($id, 'bat_dong_san', $filters);
+        // Pass null to getItems so collection detail shows resources regardless of resource_type
+        $items = Collection::getItems($id, null, $filters);
 
         $this->view('superadmin/collection-detail', [
             'collection' => $collection,

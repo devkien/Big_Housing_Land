@@ -3,7 +3,8 @@
 class Collection extends Model
 {
     // Return collections with item counts, optional search
-    public static function allWithCount(?string $search = null)
+    // If $userId is provided, return only collections owned by that user.
+    public static function allWithCount(?string $search = null, ?int $userId = null)
     {
         $db = self::db();
         $params = [];
@@ -12,11 +13,19 @@ class Collection extends Model
                 FROM collections c
                 LEFT JOIN collection_items ci ON ci.collection_id = c.id";
 
+        $clauses = [];
         if ($search) {
-            $sql .= " WHERE c.ten_bo_suu_tap LIKE ? OR c.mo_ta LIKE ?";
+            $clauses[] = "(c.ten_bo_suu_tap LIKE ? OR c.mo_ta LIKE ? )";
             $like = '%' . $search . '%';
             $params[] = $like;
             $params[] = $like;
+        }
+        if ($userId !== null) {
+            $clauses[] = "c.user_id = ?";
+            $params[] = (int)$userId;
+        }
+        if (!empty($clauses)) {
+            $sql .= " WHERE " . implode(' AND ', $clauses);
         }
 
         $sql .= " GROUP BY c.id ORDER BY c.created_at DESC";
@@ -104,22 +113,41 @@ class Collection extends Model
     }
 
     // Return collection ids for a given resource regardless of resource_type.
-    public static function getCollectionIdsForProperty(int $propertyId, int $userId, string $resourceType = null)
+    public static function getCollectionIdsForProperty(int $propertyId, ?int $userId = null, ?string $resourceType = null)
     {
         $db = self::db();
-        $stmt = $db->prepare("SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.resource_id = ? AND c.user_id = ?");
-        $stmt->execute([$propertyId, $userId]);
+        $sql = "SELECT ci.collection_id FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.resource_id = ?";
+        $params = [$propertyId];
+        if ($resourceType !== null) {
+            // Support legacy/legacy-default resource_type 'bat_dong_san' and NULL values
+            $sql .= " AND (ci.resource_type = ? OR ci.resource_type = 'bat_dong_san' OR ci.resource_type IS NULL)";
+            $params[] = $resourceType;
+        }
+        if ($userId !== null) {
+            $sql .= " AND c.user_id = ?";
+            $params[] = $userId;
+        }
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     // Return map of resource_id => count of collections that include it
-    public static function getCountsForProperties(array $propertyIds, string $resourceType = 'bat_dong_san')
+    // If $userId is provided, count only collections owned by that user (used by main user views).
+    public static function getCountsForProperties(array $propertyIds, string $resourceType = 'bat_dong_san', ?int $userId = null)
     {
         if (empty($propertyIds)) return [];
         $db = self::db();
         $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
-        $sql = "SELECT resource_id, COUNT(*) AS cnt FROM collection_items WHERE resource_id IN ($placeholders) AND resource_type = ? GROUP BY resource_id";
+        // Join collections table so we can optionally filter by collection owner
+        // Match either the explicit resourceType OR legacy 'bat_dong_san' or NULL resource_type values
+        $sql = "SELECT ci.resource_id, COUNT(*) AS cnt FROM collection_items ci JOIN collections c ON ci.collection_id = c.id WHERE ci.resource_id IN ($placeholders) AND (ci.resource_type = ? OR ci.resource_type = 'bat_dong_san' OR ci.resource_type IS NULL)";
         $params = array_merge(array_values($propertyIds), [$resourceType]);
+        if ($userId !== null) {
+            $sql .= " AND c.user_id = ?";
+            $params[] = (int)$userId;
+        }
+        $sql .= " GROUP BY ci.resource_id";
         try {
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
@@ -201,56 +229,59 @@ class Collection extends Model
         return $row ?: null;
     }
 
-    // Get items belonging to a collection. Currently supports resource_type 'bat_dong_san' which maps to `properties` table.
-    public static function getItems(int $collectionId, string $resourceType = 'bat_dong_san', array $filters = [])
+    // Get items belonging to a collection. If $resourceType is null, return items of any resource_type.
+    // For property resources this joins `properties` table.
+    public static function getItems(int $collectionId, ?string $resourceType = null, array $filters = [])
     {
         $db = self::db();
-        if ($resourceType === 'bat_dong_san') {
-            $sql = "SELECT p.* , ci.created_at AS saved_at, ci.id AS ci_id
-                    FROM collection_items ci
-                    JOIN properties p ON p.id = ci.resource_id
-                    WHERE ci.collection_id = ? AND ci.resource_type = ?";
+        // Build base SQL joining properties (we assume collection_items.resource_id points to properties.id for property resources)
+        $sql = "SELECT p.* , ci.created_at AS saved_at, ci.id AS ci_id, ci.resource_type AS resource_type, ci.resource_id AS resource_id
+                FROM collection_items ci
+                JOIN properties p ON p.id = ci.resource_id
+                WHERE ci.collection_id = ?";
 
-            $params = [(int)$collectionId, $resourceType];
+        $params = [(int)$collectionId];
 
-            // Apply filters
-            if (!empty($filters['status'])) {
-                $sql .= " AND p.trang_thai = ?";
-                $params[] = $filters['status'];
-            }
-
-            if (!empty($filters['address'])) {
-                $sql .= " AND (p.dia_chi_chi_tiet LIKE ? OR p.tinh_thanh LIKE ? OR p.quan_huyen LIKE ? OR p.xa_phuong LIKE ? )";
-                $like = '%' . $filters['address'] . '%';
-                $params[] = $like;
-                $params[] = $like;
-                $params[] = $like;
-                $params[] = $like;
-            }
-
-            if (!empty($filters['q'])) {
-                $sql .= " AND (p.ma_hien_thi LIKE ? OR p.tieu_de LIKE ? OR p.dia_chi_chi_tiet LIKE ? OR p.mo_ta LIKE ?)";
-                $like = '%' . $filters['q'] . '%';
-                $params[] = $like;
-                $params[] = $like;
-                $params[] = $like;
-                $params[] = $like;
-            }
-
-            $sql .= " ORDER BY ci.created_at DESC";
-            $stmt = $db->prepare($sql);
-            try {
-                $stmt->execute($params);
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                $msg = date('Y-m-d H:i:s') . " - Collection::getItems error: " . $e->getMessage() . " SQL: " . $sql . " Params: " . json_encode($params) . "\n";
-                @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
-                return [];
-            }
+        // If specific resource_type requested, restrict to it
+        if ($resourceType !== null) {
+            $sql .= " AND ci.resource_type = ?";
+            $params[] = $resourceType;
         }
 
-        // Fallback: return empty array for unsupported resource types
-        return [];
+        // Apply filters
+        if (!empty($filters['status'])) {
+            $sql .= " AND p.trang_thai = ?";
+            $params[] = $filters['status'];
+        }
+
+        if (!empty($filters['address'])) {
+            $sql .= " AND (p.dia_chi_chi_tiet LIKE ? OR p.tinh_thanh LIKE ? OR p.quan_huyen LIKE ? OR p.xa_phuong LIKE ? )";
+            $like = '%' . $filters['address'] . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if (!empty($filters['q'])) {
+            $sql .= " AND (p.ma_hien_thi LIKE ? OR p.tieu_de LIKE ? OR p.dia_chi_chi_tiet LIKE ? OR p.mo_ta LIKE ?)";
+            $like = '%' . $filters['q'] . '%';
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $sql .= " ORDER BY ci.created_at DESC";
+        $stmt = $db->prepare($sql);
+        try {
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            $msg = date('Y-m-d H:i:s') . " - Collection::getItems error: " . $e->getMessage() . " SQL: " . $sql . " Params: " . json_encode($params) . "\n";
+            @file_put_contents(__DIR__ . '/../../storage/logs/collection_error.log', $msg, FILE_APPEND);
+            return [];
+        }
     }
 
     // Backwards-compatible helper used by some tests/scripts: addItems(collectionIds, propertyId, resourceType)

@@ -16,6 +16,10 @@
             }
         };
     </script>
+    <script>
+        window.BASE_PATH = '<?= BASE_PATH ?>';
+        window.CURRENT_RESOURCE_TYPE = 'kho_cho_thue';
+    </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </head>
 
@@ -80,7 +84,8 @@
                         ?>
                             <tr
                                 onclick="window.location.href='<?= BASE_URL ?>/management-resource-rent?property=<?= htmlspecialchars($p['id']) ?>'">
-                                <td style="padding-left:15px;"><i class="fa-regular fa-bookmark icon-save"></i></td>
+                                <?php $inCount = isset($collectionMap[(int)$p['id']]) ? (int)$collectionMap[(int)$p['id']] : 0; ?>
+                                <td style="padding-left:15px;"><i class="<?= $inCount > 0 ? 'fa-solid saved' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i></td>
                                 <td>
                                     <?= $code ?>
                                 </td>

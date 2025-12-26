@@ -64,4 +64,4 @@
 <script>
     window.BASE_URL = '<?= BASE_URL ?>';
 </script>
-<script src="<?= BASE_URL ?>/public/js/script.js"></script>
+<!-- script.js should be included once per page in the layout/view head. -->

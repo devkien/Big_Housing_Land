@@ -17,51 +17,8 @@
         };
     </script>
     <script src="<?= BASE_URL ?>/js/script.js"></script>
-</head>
-<body>
-    <div class="app-container" style="background: white;">
 
-        <header class="resource-header">
-            <a href="<?= BASE_URL ?>/admin/home" class="header-icon-btn"><i class="fa-solid fa-chevron-left"></i></a>
-            <div class="resource-title">Kho tài nguyên</div>
-            <div class="header-icon-btn"></div>
-        </header>
-
-        <div class="tabs-container">
-            <button class="tab-btn inactive" onclick="window.location.href='<?= BASE_URL ?>/admin/management-resource-sum'">Kho nhà đất</button>
-            <button class="tab-btn active" >Kho nhà cho thuê</button>
-            
-        </div>
-        <div class="toolbar-section">
-            <button class="tool-btn" id="btn-filter"><i class="fa-solid fa-filter"></i> Lọc</button>    
-            <div style="flex:1;"></div>
-        </div>
-
-        <div class="table-wrapper" style="margin-bottom: 0;">
-            <table class="resource-table" style="min-width: 800px;">
-                <thead>
-                    <tr>
-                        <th style="padding-left:15px; width: 60px;">LƯU</th>
-                        <th style="width: 60px;">GHI CHÚ</th>
-                        <th style="width: 100px;">MÃ TÀI NGUYÊN</th>
-                        <th style="width: 100px;">THỜI GIAN</th>
-                        <th style="width: 120px;">HIỆN TRẠNG</th>
-                        <th>ĐỊA CHỈ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $statusMap = [
-                        'ban_manh' => 'Bán mạnh',
-                        'tam_dung_ban' => 'Tạm dừng',
-                        'dung_ban' => 'Dừng bán',
-                        'da_ban' => 'Đã bán',
-                        'tang_chao' => 'Tăng chào',
-                        'ha_chao' => 'Hạ chào'
-                    ];
-
-                    if (empty($properties)) :
-                    ?>
+    <?php
                         <tr>
                             <td colspan="6" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
                         </tr>
@@ -267,47 +224,7 @@
                 });
             }
 
-            if (cellSaves) {
-                cellSaves.forEach(icon => {
-                    icon.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const tr = icon.closest('tr');
-                        // Lấy ID từ thuộc tính onclick của tr hoặc data-id nếu có
-                        // Ở đây tr có onclick="window.location.href='...id=...'"
-                        // Ta sẽ lấy từ URL trong onclick
-                        const onclickStr = tr.getAttribute('onclick');
-                        const match = onclickStr.match(/id=(\d+)/);
-                        if (match) {
-                            currentPropertyId = match[1];
-                            if (saveCollectionModal) saveCollectionModal.style.display = 'flex';
-                        }
-                    });
-                });
-            }
-
-            if (confirmSaveCollection) {
-                confirmSaveCollection.addEventListener('click', () => {
-                    if (!currentPropertyId) return;
-                    const selected = [];
-                    saveCollectionModal.querySelectorAll('input[name="collection[]"]:checked').forEach(cb => {
-                        selected.push(cb.value);
-                    });
-
-                    const formData = new FormData();
-                    formData.append('property_id', currentPropertyId);
-                    selected.forEach(id => formData.append('collection_ids[]', id));
-
-                    fetch('<?= BASE_URL ?>/admin/add-to-collection', {
-                        method: 'POST',
-                        body: formData
-                    }).then(r => r.json()).then(data => {
-                        if(data.success) {
-                            alert('Đã lưu vào bộ sưu tập!');
-                            saveCollectionModal.style.display = 'none';
-                        } else alert('Lỗi: ' + (data.message || 'Không thể lưu'));
-                    });
-                });
-            }
+            // Save-collection handlers are centralized in public/js/script.js — removed inline to avoid duplicates.
 
             if (saveStatusBtn) {
                 saveStatusBtn.addEventListener('click', () => {

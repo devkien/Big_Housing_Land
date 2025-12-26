@@ -246,14 +246,18 @@ class ResourceController extends Controller
             $properties = Property::getByLoaiKho('kho_nha_dat', $perPage, $offset, $searchTerm, $status);
         }
 
-        // load collections for "save to collection" modal
+        // load collections for "save to collection" modal (only collections owned by current superadmin)
         require_once __DIR__ . '/../Models/Collection.php';
-        $collections = Collection::allWithCount();
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = $user['id'] ?? null;
+        $collections = Collection::allWithCount(null, $userId);
         // build map of property_id => count of collections that include it
         $propertyIds = array_map(function ($r) {
             return (int)($r['id'] ?? 0);
         }, $properties);
-        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds));
+        // resource type for this controller action is 'kho_nha_dat'
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_nha_dat', $userId);
 
         $this->view('superadmin/resource', [
             'properties' => $properties,
@@ -287,13 +291,17 @@ class ResourceController extends Controller
 
         $properties = Property::getByLoaiKho('kho_cho_thue', $perPage, $offset, $searchTerm, $status);
 
-        // load collections and build collection map
+        // load collections and build collection map (only those owned by current superadmin)
         require_once __DIR__ . '/../Models/Collection.php';
-        $collections = Collection::allWithCount();
+        require_once __DIR__ . '/../../core/Auth.php';
+        $user = \Auth::user();
+        $userId = $user['id'] ?? null;
+        $collections = Collection::allWithCount(null, $userId);
         $propertyIds = array_map(function ($r) {
             return (int)($r['id'] ?? 0);
         }, $properties);
-        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds));
+        // resource type for this action is 'kho_cho_thue'
+        $collectionMap = Collection::getCountsForProperties(array_filter($propertyIds), 'kho_cho_thue', $userId);
 
         $this->view('superadmin/resource-rent', [
             'properties' => $properties,
@@ -372,20 +380,30 @@ class ResourceController extends Controller
 
         $propertyId = (int)$data['property_id'];
         $collections = is_array($data['collections']) ? $data['collections'] : [];
+        $resourceType = isset($data['resource_type']) ? trim($data['resource_type']) : 'bat_dong_san';
 
-        if ($propertyId <= 0 || empty($collections)) {
-            @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Invalid params: property_id={$propertyId}, collections=" . json_encode($collections) . "\n", FILE_APPEND);
+        if ($propertyId <= 0) {
+            @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Invalid property_id: {$propertyId}\n", FILE_APPEND);
             http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Invalid parameters']);
+            echo json_encode(['ok' => false, 'message' => 'Invalid property_id']);
             return;
         }
 
         require_once __DIR__ . '/../Models/Collection.php';
 
-        $added = Collection::addItems($collections, $propertyId, 'bat_dong_san');
-        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - Added count: {$added}\n", FILE_APPEND);
+        // Use syncItems to ensure resource_id/resource_type semantics are used
+        // and that after this call the resource belongs exactly to provided collections.
+        $result = Collection::syncItems($collections, $propertyId, $resourceType);
+        // syncItems returns number of inserted rows or false on error
+        if ($result === false) {
+            @file_put_contents($logPath, date('Y-m-d H:i:s') . " - syncItems failed for prop {$propertyId} resource_type={$resourceType} collections=" . json_encode($collections) . "\n", FILE_APPEND);
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'message' => 'Failed to save collections']);
+            return;
+        }
 
-        echo json_encode(['ok' => true, 'added' => $added]);
+        @file_put_contents($logPath, date('Y-m-d H:i:s') . " - syncPropertyCollections result: {$result}\n", FILE_APPEND);
+        echo json_encode(['ok' => true, 'added' => $result]);
     }
 
     // AJAX handler to update property status
@@ -455,7 +473,6 @@ class ResourceController extends Controller
         }
     }
 
-    // AJAX: return collection ids that include a given property for current user
     public function getCollectionsForProperty()
     {
         require_once __DIR__ . '/../Helpers/functions.php';
@@ -470,10 +487,27 @@ class ResourceController extends Controller
 
         require_once __DIR__ . '/../Models/Collection.php';
         require_once __DIR__ . '/../../core/Auth.php';
-        $user = \Auth::user();
-        $userId = isset($user['id']) ? (int)$user['id'] : 0;
 
-        $ids = Collection::getCollectionIdsForProperty($id, $userId);
-        echo json_encode(['ok' => true, 'collections' => array_values($ids)]);
+        $user = \Auth::user();
+        $userId = (int)($user['id'] ?? 0);
+
+        // Restrict to collections owned by the current superadmin (isolation per account)
+        $rawIds = Collection::getCollectionIdsForProperty($id, $userId);
+
+        // 🔥 ÉP KIỂU + LẤY GIÁ TRỊ THUẦN
+        $ids = array_map(function ($row) {
+            if (is_array($row)) {
+                return (int)($row['collection_id'] ?? 0);
+            }
+            return (int)$row;
+        }, $rawIds);
+
+        // bỏ các giá trị rỗng
+        $ids = array_values(array_filter($ids));
+
+        echo json_encode([
+            'ok' => true,
+            'collections' => $ids
+        ]);
     }
 }

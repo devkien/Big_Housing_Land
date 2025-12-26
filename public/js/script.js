@@ -191,46 +191,93 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnConfirmSaveCollection = document.getElementById('confirm-save-collection');
     let currentIconToSave = null;
 
-    // Attach direct click handlers to each icon-save so we can stopPropagation early
-    const saveIcons = document.querySelectorAll('.icon-save');
-    saveIcons.forEach(icon => {
-        icon.addEventListener('click', function (e) {
-            // If this icon already represents a saved item, do not intercept the click here.
-            // Let page-specific handlers (e.g., collection-detail) handle delete confirmation.
-            if (this.classList.contains('saved')) return;
-            // For non-saved icons, stop propagation so the row click doesn't navigate away.
-            e.stopPropagation(); // Ngăn chặn sự kiện click của dòng (chuyển trang)
-            currentIconToSave = this;
-            if (saveCollectionModal) {
-                // reset checkboxes first
-                const checkboxes = saveCollectionModal.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach(cb => cb.checked = false);
+    // Use event delegation for .icon-save clicks to avoid duplicate listeners
+    document.body.addEventListener('click', function (e) {
+        const icon = e.target.closest && e.target.closest('.icon-save');
+        if (!icon) return;
 
-                // try to pre-check collections that already contain this property (ajax)
-                const tr = this.closest && this.closest('tr');
-                const propId = tr ? tr.getAttribute('data-id') : null;
-                if (propId) {
-                    // fetch via admin endpoint which allows admin/super_admin
-                    var resourceTypeParam = typeof window.CURRENT_RESOURCE_TYPE !== 'undefined' ? '&resource_type=' + encodeURIComponent(window.CURRENT_RESOURCE_TYPE) : '';
-                    fetch(window.BASE_PATH + '/admin/get-property-collections?id=' + encodeURIComponent(propId) + resourceTypeParam, { credentials: 'same-origin' })
-                        .then(r => r.json())
-                        .then(json => {
-                            if (json && json.success && Array.isArray(json.collection_ids)) {
-                                json.collection_ids.forEach(function (cid) {
-                                    const cb = saveCollectionModal.querySelector('input[type="checkbox"][value="' + cid + '"]');
-                                    if (cb) cb.checked = true;
-                                });
-                            }
-                        }).catch(function () {
-                            // ignore errors; user can still pick collections
-                        }).finally(function () {
-                            saveCollectionModal.style.display = 'flex';
-                        });
-                } else {
-                    saveCollectionModal.style.display = "flex";
+        // If this icon already represents a saved item, decide whether to
+        // open the save-modal (to allow unchecking) or let a page-specific
+        // handler manage it (e.g., collection-detail uses its own delete flow).
+        if (icon.classList.contains('saved')) {
+            var isCollectionDetailPath = (window.location.pathname || '').indexOf('/collection-detail') !== -1 || (window.location.pathname || '').indexOf('/collection-detail') !== -1;
+            // If icon has a collection-instance id (`data-ci`) or we're on the
+            // collection-detail page, let the page-specific handler (delete) run.
+            if (icon.hasAttribute && icon.hasAttribute('data-ci')) return;
+            if (isCollectionDetailPath) return;
+            // otherwise allow opening the save modal so the user can uncheck boxes
+        }
+
+        e.stopPropagation();
+        currentIconToSave = icon;
+
+        if (!saveCollectionModal) return;
+
+        // Reset all checkboxes immediately (deterministic start state)
+        const checkboxes = saveCollectionModal.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+
+        // Derive property id from nearest row
+        const tr = icon.closest && icon.closest('tr');
+        const propId = tr ? tr.getAttribute('data-id') : null;
+        try { saveCollectionModal.setAttribute('data-property-id', propId || ''); } catch (e) { }
+
+        // Async fetch membership and then open modal only after attempt finishes
+        (async function () {
+            if (propId) {
+                try {
+                    // Use the endpoint that matches the current area (superadmin pages use a different handler)
+                    let resp, json;
+                    // Decide which endpoint to call depending on current area
+                    const resourceTypeParam = typeof window.CURRENT_RESOURCE_TYPE !== 'undefined' ? '&resource_type=' + encodeURIComponent(window.CURRENT_RESOURCE_TYPE) : '';
+                    const path = (window.location.pathname || '').toLowerCase();
+                    if (path.indexOf('/superadmin') !== -1) {
+                        // superadmin controller expects `property_id` and returns { ok: true, collections: [...] }
+                        resp = await fetch((window.BASE_PATH || '') + '/superadmin/get-collections-for-property?property_id=' + encodeURIComponent(propId), { credentials: 'same-origin' });
+                        json = await resp.json().catch(() => null);
+                        console.debug('get-collections-for-property response', json);
+                        if (json && json.ok && Array.isArray(json.collections)) {
+                            json.collections.forEach(function (cid) {
+                                const cb = saveCollectionModal.querySelector('input[type="checkbox"][value="' + cid + '"]');
+                                console.debug('Attempt tick checkbox for cid', cid, 'found?', !!cb);
+                                if (cb) cb.checked = true;
+                            });
+                        }
+                    } else if (path.indexOf('/admin') !== -1) {
+                        // admin endpoint returns { success: true, collection_ids: [...] }
+                        resp = await fetch((window.BASE_PATH || '') + '/admin/get-property-collections?id=' + encodeURIComponent(propId) + resourceTypeParam, { credentials: 'same-origin' });
+                        json = await resp.json().catch(() => null);
+                        console.debug('admin get-property-collections response', json);
+                        if (json && json.success && Array.isArray(json.collection_ids)) {
+                            json.collection_ids.forEach(function (cid) {
+                                const cb = saveCollectionModal.querySelector('input[type="checkbox"][value="' + cid + '"]');
+                                console.debug('Attempt tick checkbox for cid', cid, 'found?', !!cb);
+                                if (cb) cb.checked = true;
+                            });
+                        }
+                    } else {
+                        // main user endpoints: GET /get-property-collections -> { success: true, collection_ids: [...] }
+                        resp = await fetch((window.BASE_PATH || '') + '/get-property-collections?id=' + encodeURIComponent(propId) + resourceTypeParam, { credentials: 'same-origin' });
+                        json = await resp.json().catch(() => null);
+                        console.debug('main get-property-collections response', json);
+                        if (json && json.success && Array.isArray(json.collection_ids)) {
+                            json.collection_ids.forEach(function (cid) {
+                                const cb = saveCollectionModal.querySelector('input[type="checkbox"][value="' + cid + '"]');
+                                console.debug('Attempt tick checkbox for cid', cid, 'found?', !!cb);
+                                if (cb) cb.checked = true;
+                            });
+                        }
+                    }
+                } catch (err) {
+                    // ignore fetch errors — user can still select manually
+                    console.error('Error fetching collections for property', err);
+                } finally {
+                    saveCollectionModal.style.display = 'flex';
                 }
+            } else {
+                saveCollectionModal.style.display = 'flex';
             }
-        });
+        })();
     });
 
     if (btnCloseSaveCollection) {
@@ -261,29 +308,80 @@ document.addEventListener('DOMContentLoaded', function () {
                 _csrf: (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : ''
             };
 
-            fetch(window.BASE_PATH + '/superadmin/save-to-collections', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'same-origin'
-            }).then(function (res) { return res.json(); }).then(function (json) {
-                if (json && json.ok) {
-                    // visual feedback: make icon solid and yellow
-                    if (currentIconToSave) {
-                        currentIconToSave.classList.remove('fa-regular');
-                        currentIconToSave.classList.add('fa-solid');
-                        currentIconToSave.style.color = '#ffcc00';
+            (async function () {
+                const path = (window.location.pathname || '').toLowerCase();
+                try {
+                    if (path.indexOf('/superadmin') !== -1) {
+                        // Superadmin: use JSON API
+                        const res = await fetch((window.BASE_PATH || '') + '/superadmin/save-to-collections', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                            credentials: 'same-origin'
+                        });
+                        const json = await res.json().catch(() => null);
+                        if (res.ok && json && json.ok) {
+                            if (currentIconToSave) {
+                                currentIconToSave.classList.remove('fa-regular');
+                                currentIconToSave.classList.add('fa-solid');
+                                currentIconToSave.style.color = '#ffcc00';
+                            }
+                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công. Đã thêm: ' + (json.added || 0));
+                        } else {
+                            window.showAlert('error', 'Lỗi: ' + ((json && json.message) ? json.message : 'Không xác định'));
+                        }
+                    } else if (path.indexOf('/admin') !== -1) {
+                        // Admin: POST form-encoded to admin add endpoint
+                        const form = new FormData();
+                        form.append('property_id', payload.property_id);
+                        form.append('resource_type', payload.resource_type || 'bat_dong_san');
+                        selected.forEach(id => form.append('collection_ids[]', id));
+                        const res = await fetch((window.BASE_PATH || '') + '/admin/add-to-collection', {
+                            method: 'POST',
+                            body: form,
+                            credentials: 'same-origin'
+                        });
+                        const json = await res.json().catch(() => null);
+                        if (res.ok && json && json.success) {
+                            if (currentIconToSave) {
+                                currentIconToSave.classList.remove('fa-regular');
+                                currentIconToSave.classList.add('fa-solid');
+                                currentIconToSave.style.color = '#ffcc00';
+                            }
+                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công.');
+                        } else {
+                            window.showAlert('error', 'Lỗi: ' + ((json && json.message) ? json.message : 'Không xác định'));
+                        }
+                    } else {
+                        // Main user: use main add-to-collection endpoint (form POST)
+                        const form = new FormData();
+                        form.append('property_id', payload.property_id);
+                        form.append('resource_type', payload.resource_type || 'bat_dong_san');
+                        selected.forEach(id => form.append('collection_ids[]', id));
+                        const res = await fetch((window.BASE_PATH || '') + '/add-to-collection', {
+                            method: 'POST',
+                            body: form,
+                            credentials: 'same-origin'
+                        });
+                        const json = await res.json().catch(() => null);
+                        if (res.ok && json && json.success) {
+                            if (currentIconToSave) {
+                                currentIconToSave.classList.remove('fa-regular');
+                                currentIconToSave.classList.add('fa-solid');
+                                currentIconToSave.style.color = '#ffcc00';
+                            }
+                            window.showAlert('success', 'Lưu vào bộ sưu tập thành công.');
+                        } else {
+                            window.showAlert('error', 'Lỗi: ' + ((json && json.message) ? json.message : 'Không xác định'));
+                        }
                     }
-                    window.showAlert('success', 'Lưu vào bộ sưu tập thành công. Đã thêm: ' + (json.added || 0));
-                } else {
-                    window.showAlert('error', 'Lỗi: ' + ((json && json.message) ? json.message : 'Không xác định'));
+                } catch (err) {
+                    console.error('Save to collections failed', err);
+                    window.showAlert('error', 'Lỗi khi kết nối server');
+                } finally {
+                    if (saveCollectionModal) saveCollectionModal.style.display = 'none';
                 }
-            }).catch(function (err) {
-                console.error('Save to collections failed', err);
-                window.showAlert('error', 'Lỗi khi kết nối server');
-            }).finally(function () {
-                if (saveCollectionModal) saveCollectionModal.style.display = 'none';
-            });
+            })();
         }
     }
 
