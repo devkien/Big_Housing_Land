@@ -31,7 +31,7 @@
             <img src="<?php echo BASE_URL; ?>/icon/menuanhdaidien.png" class="profile-avatar-large">
             <div class="profile-info">
                 <h3><?php echo htmlspecialchars($user['ho_ten'] ?? 'Người dùng'); ?></h3>
-                <div class="profile-role">Cấp quản lý</div>
+                <div class="profile-role">Cấp người dùng</div>
                 <div class="office-badge"><?php echo htmlspecialchars($user['dia_chi'] ?? ''); ?></div>
             </div>
             <i class="fa-solid fa-chevron-right arrow-right-absolute"></i>

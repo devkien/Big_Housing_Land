@@ -144,10 +144,14 @@
                         $thumbHtml = '<div style="width:100%;height:100%;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#888;">thumb</div>';
                     }
                 ?>
-                    <article class="post-card" onclick="window.location.href='<?= BASE_URL ?>/management-resource-detail?id=<?= (int)$p['id'] ?>'">
+                    <?php
+                    $detailUrl = rtrim(BASE_URL, '/') . '/detail?id=' . (int)$p['id'];
+                    $userAvatar = !empty($p['user_avatar']) ? (stripos($p['user_avatar'], 'http://') === 0 || stripos($p['user_avatar'], 'https://') === 0 ? $p['user_avatar'] : rtrim(BASE_URL, '/') . '/' . ltrim($p['user_avatar'], '/')) : rtrim(BASE_URL, '/') . '/icon/menuanhdaidien.png';
+                    ?>
+                    <article class="post-card" onclick="window.location.href='<?= htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8') ?>'">
                         <div class="user-row">
                             <div class="user-left">
-                                <img src="<?= rtrim(BASE_URL, '/') . '/icon/menuanhdaidien.png' ?>" class="user-avatar">
+                                <img src="<?= htmlspecialchars($userAvatar) ?>" class="user-avatar">
                                 <div class="user-info">
                                     <div class="user-name"><?= htmlspecialchars($p['phong_ban'] ?? 'Người đăng') ?> - <?= htmlspecialchars($p['user_id'] ?? '') ?></div>
                                     <div class="rating-stars">
@@ -187,15 +191,15 @@
                                                         }
                                                     }
                                                     ?><?php
-                                                            $perUnitText = '';
-                                                            if ($gia !== null && $area && $area > 0) {
-                                                                $ppu_million = ($gia / $area) / 1000000;
-                                                                $unitLabel = ($areaUnit === 'ha') ? 'tr/ha' : 'tr/m²';
-                                                                $ppu_round = round($ppu_million);
-                                                                $perUnitText = $ppu_round . $unitLabel;
-                                                            }
-                                                            echo $perUnitText ? ' - ' . htmlspecialchars($perUnitText) : '';
-                                                            ?></div>
+                                                        $perUnitText = '';
+                                                        if ($gia !== null && $area && $area > 0) {
+                                                            $ppu_million = ($gia / $area) / 1000000;
+                                                            $unitLabel = ($areaUnit === 'ha') ? 'tr/ha' : 'tr/m²';
+                                                            $ppu_round = round($ppu_million);
+                                                            $perUnitText = $ppu_round . $unitLabel;
+                                                        }
+                                                        echo $perUnitText ? ' - ' . htmlspecialchars($perUnitText) : '';
+                                                        ?></div>
                             <div class="tags-group">
                                 <?php
                                 $tags = [];

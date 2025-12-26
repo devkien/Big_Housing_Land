@@ -15,7 +15,15 @@
         <div class="page-big-title">Danh mục tài khoản</div>
 
         <div class="profile-card-banner" onclick="window.location.href='<?= BASE_URL ?>/detailprofile'">
-            <img src="../icon/menuanhdaidien.png" class="profile-avatar-large">
+            <?php
+            $avatar = $user['avatar'] ?? null;
+            if (!empty($avatar)) {
+                $avatarUrl = rtrim(BASE_URL, '/') . '/uploads/' . ltrim($avatar, '/');
+            } else {
+                $avatarUrl = rtrim(BASE_URL, '/') . '/icon/menuanhdaidien.png';
+            }
+            ?>
+            <img src="<?php echo htmlspecialchars($avatarUrl, ENT_QUOTES, 'UTF-8'); ?>" class="profile-avatar-large">
             <div class="profile-info">
                 <h3><?php echo isset($user['ho_ten']) ? htmlspecialchars($user['ho_ten'], ENT_QUOTES, 'UTF-8') : '---'; ?></h3>
                 <div class="profile-role">Người dùng</div>

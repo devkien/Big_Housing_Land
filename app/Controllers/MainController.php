@@ -647,7 +647,10 @@ class MainController extends Controller
         if (isset($_GET['status']) && trim($_GET['status']) !== '' && trim($_GET['status']) !== 'all') $filters['status'] = trim($_GET['status']);
         if (isset($_GET['address']) && trim($_GET['address']) !== '') $filters['address'] = trim($_GET['address']);
 
-        $items = Collection::getItems($id, 'bat_dong_san', $filters);
+        // Do not force a specific resource_type here — collections may contain resources
+        // saved under different resource_type values (kho_nha_dat, kho_cho_thue, etc.).
+        // Passing null returns items of any resource_type.
+        $items = Collection::getItems($id, null, $filters);
 
         $this->view('main/collection-detail', [
             'collection' => $collection,
