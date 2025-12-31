@@ -94,7 +94,7 @@ $router = new Router();
 
 /**
  * ============================
- * ROUTES
+ * ROUTES AUTHENTICATION
  * ============================
  */
 
