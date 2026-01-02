@@ -436,18 +436,26 @@ class AdminController extends Controller
                 'video/quicktime'
             ];
 
-            if (!empty($_FILES['media']) && is_array($_FILES['media']['tmp_name'])) {
-                $count = count($_FILES['media']['tmp_name']);
-                if ($count > $maxFiles) {
-                    $_SESSION['error'] = "Chỉ được tải tối đa $maxFiles file.";
-                    header('Location: ' . BASE_URL . '/admin/management-resource-post');
-                    exit;
+            // Check total files across supported upload inputs
+            $fieldsCheck = ['media', 'media_current', 'media_contract'];
+            $totalCount = 0;
+            foreach ($fieldsCheck as $f) {
+                if (!empty($_FILES[$f]) && isset($_FILES[$f]['tmp_name'])) {
+                    if (is_array($_FILES[$f]['tmp_name'])) {
+                        $totalCount += count($_FILES[$f]['tmp_name']);
+                    } else {
+                        $totalCount += ($_FILES[$f]['tmp_name'] ? 1 : 0);
+                    }
                 }
-                // prepare upload dir early
-                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties_temp';
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
-                // files checked later and moved after property created
             }
+            if ($totalCount > $maxFiles) {
+                $_SESSION['error'] = "Chỉ được tải tối đa $maxFiles file.";
+                header('Location: ' . BASE_URL . '/admin/management-resource-post');
+                exit;
+            }
+            // prepare upload temp dir early
+            $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties_temp';
+            if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
 
             // Normalize and log incoming files for debugging (helps diagnose why files may be missing)
             $uploadDebugPath = __DIR__ . '/../../storage/logs/upload_debug.log';
@@ -463,17 +471,18 @@ class AdminController extends Controller
                 exit;
             }
 
-            // Handle uploaded media files (more robust: accept single file cases and log skips)
+            // Handle uploaded media files from multiple inputs: media, media_current, media_contract
             $savedMedia = [];
-            if (!empty($_FILES['media'])) {
-                // normalize arrays
-                $files = $_FILES['media'];
+            $uploadsDirBase = realpath(__DIR__ . '/../../public') . '/uploads/properties/' . $propertyId;
+            if (!is_dir($uploadsDirBase)) mkdir($uploadsDirBase, 0755, true);
+
+            $fields = ['media', 'media_current', 'media_contract'];
+            foreach ($fields as $field) {
+                if (empty($_FILES[$field])) continue;
+                $files = $_FILES[$field];
                 $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
                 $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
                 $names = is_array($files['name']) ? $files['name'] : [$files['name']];
-
-                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties/' . $propertyId;
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
 
                 $count = count($tmpNames);
                 for ($i = 0; $i < $count; $i++) {
@@ -482,43 +491,39 @@ class AdminController extends Controller
                     $orig = isset($names[$i]) ? basename($names[$i]) : '';
 
                     if ($err !== UPLOAD_ERR_OK) {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Skipping file (#$i) orig={$orig} err={$err}\n", FILE_APPEND);
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Skipping file field={$field} (#$i) orig={$orig} err={$err}\n", FILE_APPEND);
                         continue;
                     }
                     if (empty($tmp) || !is_uploaded_file($tmp)) {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Not an uploaded file (#$i) tmp={$tmp}\n", FILE_APPEND);
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Not an uploaded file field={$field} (#$i) tmp={$tmp}\n", FILE_APPEND);
                         continue;
                     }
 
-                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
-                    // validate size
                     $size = @filesize($tmp);
-                    if ($size === false) {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Could not read size (#$i) tmp={$tmp}\n", FILE_APPEND);
+                    if ($size === false || $size > $maxSize) {
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - File too large or unreadable field={$field} (#$i) size={$size}\n", FILE_APPEND);
                         continue;
                     }
-                    if ($size > $maxSize) {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - File too large (#$i) size={$size}\n", FILE_APPEND);
-                        continue;
-                    }
-                    // validate mime from tmp
+
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
                     $mime = finfo_file($finfo, $tmp);
                     finfo_close($finfo);
                     if (!in_array($mime, $allowedMimes, true)) {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Rejected mime (#$i) mime={$mime} orig={$orig}\n", FILE_APPEND);
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Rejected mime field={$field} (#$i) mime={$mime} orig={$orig}\n", FILE_APPEND);
                         continue;
                     }
 
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
                     $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-                    $dest = $uploadsDir . '/' . $filename;
+                    $dest = $uploadsDirBase . '/' . $filename;
                     if (move_uploaded_file($tmp, $dest)) {
                         $webPath = 'uploads/properties/' . $propertyId . '/' . $filename;
                         $type = strpos($mime, 'video/') === 0 ? 'video' : 'image';
+                        // Optionally record which field this came from
                         $savedMedia[] = ['type' => $type, 'path' => $webPath];
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Saved file (#$i) to {$dest}\n", FILE_APPEND);
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - Saved file field={$field} (#$i) to {$dest}\n", FILE_APPEND);
                     } else {
-                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - move_uploaded_file failed (#$i) src={$tmp} dest={$dest}\n", FILE_APPEND);
+                        @file_put_contents($uploadDebugPath, date('Y-m-d H:i:s') . " - move_uploaded_file failed field={$field} (#$i) src={$tmp} dest={$dest}\n", FILE_APPEND);
                     }
                 }
             }

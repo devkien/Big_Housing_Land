@@ -156,16 +156,25 @@ class ResourceController extends Controller
                 'video/mp4', 'video/quicktime'
             ];
 
-            if (!empty($_FILES['media']) && is_array($_FILES['media']['tmp_name'])) {
-                $count = count($_FILES['media']['tmp_name']);
-                if ($count > $maxFiles) {
-                    $_SESSION['error'] = "Chỉ được tải tối đa $maxFiles file.";
-                    header('Location: ' . BASE_URL . '/superadmin/management-resource-post');
-                    exit;
+            // Check total files across supported upload inputs
+            $fieldsCheck = ['media', 'media_current', 'media_contract'];
+            $totalCount = 0;
+            foreach ($fieldsCheck as $f) {
+                if (!empty($_FILES[$f]) && isset($_FILES[$f]['tmp_name'])) {
+                    if (is_array($_FILES[$f]['tmp_name'])) {
+                        $totalCount += count($_FILES[$f]['tmp_name']);
+                    } else {
+                        $totalCount += ($_FILES[$f]['tmp_name'] ? 1 : 0);
+                    }
                 }
-                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties_temp';
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
             }
+            if ($totalCount > $maxFiles) {
+                $_SESSION['error'] = "Chỉ được tải tối đa $maxFiles file.";
+                header('Location: ' . BASE_URL . '/superadmin/management-resource-post');
+                exit;
+            }
+            $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties_temp';
+            if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
 
             // --- Gọi Model CREATE ---
             // Lưu ý: Model Property::create cần được cập nhật để nhận 'tinh_trang_duyet'
@@ -179,15 +188,18 @@ class ResourceController extends Controller
                 exit;
             }
 
-            // Handle uploaded media files
-            if (!empty($_FILES['media'])) {
-                $files = $_FILES['media'];
+            // Handle uploaded media files from multiple inputs: media, media_current, media_contract
+            $savedMedia = [];
+            $uploadsDirBase = realpath(__DIR__ . '/../../public') . '/uploads/properties/' . $propertyId;
+            if (!is_dir($uploadsDirBase)) mkdir($uploadsDirBase, 0755, true);
+
+            $fields = ['media', 'media_current', 'media_contract'];
+            foreach ($fields as $field) {
+                if (empty($_FILES[$field])) continue;
+                $files = $_FILES[$field];
                 $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
                 $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
                 $names = is_array($files['name']) ? $files['name'] : [$files['name']];
-
-                $uploadsDir = realpath(__DIR__ . '/../../public') . '/uploads/properties/' . $propertyId;
-                if (!is_dir($uploadsDir)) mkdir($uploadsDir, 0755, true);
 
                 $count = count($tmpNames);
                 for ($i = 0; $i < $count; $i++) {
@@ -207,7 +219,7 @@ class ResourceController extends Controller
 
                     $ext = pathinfo($orig, PATHINFO_EXTENSION);
                     $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-                    $dest = $uploadsDir . '/' . $filename;
+                    $dest = $uploadsDirBase . '/' . $filename;
                     
                     if (move_uploaded_file($tmp, $dest)) {
                         $webPath = 'uploads/properties/' . $propertyId . '/' . $filename;
@@ -655,6 +667,46 @@ class ResourceController extends Controller
             ];
 
             Property::update((int)$id, $data);
+
+            // If new files were uploaded during edit, save them as media rows
+            $maxFiles = 12;
+            $maxSize = 8 * 1024 * 1024;
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/quicktime'];
+            $savedMedia = [];
+            $uploadsDirBase = realpath(__DIR__ . '/../../public') . '/uploads/properties/' . $id;
+            if (!is_dir($uploadsDirBase)) mkdir($uploadsDirBase, 0755, true);
+            $fields = ['media', 'media_current', 'media_contract'];
+            foreach ($fields as $field) {
+                if (empty($_FILES[$field])) continue;
+                $files = $_FILES[$field];
+                $tmpNames = is_array($files['tmp_name']) ? $files['tmp_name'] : [$files['tmp_name']];
+                $errors = is_array($files['error']) ? $files['error'] : [$files['error']];
+                $names = is_array($files['name']) ? $files['name'] : [$files['name']];
+
+                $count = count($tmpNames);
+                for ($i = 0; $i < $count; $i++) {
+                    $err = $errors[$i] ?? UPLOAD_ERR_NO_FILE;
+                    $tmp = $tmpNames[$i] ?? '';
+                    $orig = isset($names[$i]) ? basename($names[$i]) : '';
+                    if ($err !== UPLOAD_ERR_OK || empty($tmp) || !is_uploaded_file($tmp)) continue;
+                    $size = @filesize($tmp);
+                    if ($size === false || $size > $maxSize) continue;
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmp);
+                    finfo_close($finfo);
+                    if (!in_array($mime, $allowedMimes, true)) continue;
+                    $ext = pathinfo($orig, PATHINFO_EXTENSION);
+                    $filename = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+                    $dest = $uploadsDirBase . '/' . $filename;
+                    if (move_uploaded_file($tmp, $dest)) {
+                        $webPath = 'uploads/properties/' . $id . '/' . $filename;
+                        $type = strpos($mime, 'video/') === 0 ? 'video' : 'image';
+                        $savedMedia[] = ['type' => $type, 'path' => $webPath];
+                    }
+                }
+            }
+            if (!empty($savedMedia)) Property::addMedia((int)$id, $savedMedia);
+
             $_SESSION['success'] = 'Cập nhật thành công';
             header('Location: ' . BASE_URL . '/superadmin/management-resource');
             exit;
