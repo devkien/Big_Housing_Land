@@ -7,6 +7,76 @@
     <title>Danh mục tài khoản</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/style.css">
+    <style>
+        /* CSS cho Modal xác nhận xóa tài khoản */
+        .modal-confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-confirm-box {
+            background: white;
+            width: 90%;
+            max-width: 320px;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-confirm-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #3b5998; /* Màu xanh tiêu đề */
+            margin-bottom: 10px;
+        }
+
+        .modal-confirm-desc {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .modal-confirm-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn-confirm {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-confirm-agree {
+            background-color: #3b5998;
+            color: white;
+            border: none;
+        }
+
+        .btn-confirm-cancel {
+            background-color: white;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+        }
+        
+        .btn-confirm-cancel:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
 </head>
 
 <body>
@@ -66,6 +136,11 @@
                 <span>Đổi mật khẩu</span>
                 <i class="fa-solid fa-chevron-right" style="font-size:12px; color:#999;"></i>
             </div>
+
+            <div class="sub-setting-item" onclick="document.getElementById('modal-delete-account').style.display='flex'">
+                <span style="color: #dc3545;">Xóa tài khoản</span>
+                <i class="fa-solid fa-chevron-right" style="font-size:12px; color:#999;"></i>
+            </div>
         </div>
 
         <div class="settings-group">
@@ -86,6 +161,18 @@
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
     </div>
+
+    <div id="modal-delete-account" class="modal-confirm-overlay">
+        <div class="modal-confirm-box">
+            <div class="modal-confirm-title">Xoá tài khoản</div>
+            <div class="modal-confirm-desc">Bạn chắc chắn sẽ xoá tài khoản này?</div>
+            <div class="modal-confirm-actions">
+                <button class="btn-confirm btn-confirm-agree" onclick="window.location.href='<?= BASE_URL ?>/superadmin/logout'">Đồng ý</button>
+                <button class="btn-confirm btn-confirm-cancel" onclick="document.getElementById('modal-delete-account').style.display='none'">Huỷ bỏ</button>
+            </div>
+        </div>
+    </div>
+
     <script src="<?= BASE_URL ?>/js/script.js"></script>
 </body>
 
