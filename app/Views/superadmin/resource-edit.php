@@ -8,6 +8,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/style.css">
     <script src="<?= BASE_URL ?>/public/js/script.js"></script>
+    <script>
+        // Định nghĩa BASE_URL để JS sử dụng
+        window.BASE_URL = '<?= BASE_URL ?>';
+    </script>
 </head>
 
 <body>
@@ -106,6 +110,7 @@
                         <option <?= ($property['trich_thuong_don_vi'] ?? '') == 'VND' ? 'selected' : '' ?>>VND</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <input type="text" name="dia_chi_chi_tiet" class="form-input" placeholder="Số nhà, tên đường" value="<?= htmlspecialchars($property['dia_chi_chi_tiet'] ?? '') ?>">
                 </div>
@@ -114,24 +119,51 @@
                     <input type="checkbox" id="showAddress" name="is_visible" value="1" <?= !empty($property['is_visible']) ? 'checked' : '' ?>>
                     <label for="showAddress">Hiển thị số nhà</label>
                 </div>
+
                 <div class="form-group">
                     <textarea name="mo_ta" class="form-textarea" placeholder="Thêm mô tả:"><?= htmlspecialchars($property['mo_ta'] ?? '') ?></textarea>
                     <div class="char-counter">0/1500 ký tự</div>
                 </div>
+
                 <div class="upload-slots-row">
-                    <div class="upload-slot" onclick="document.getElementById('file-upload-current').click()">
-                        <label class="upload-slot-title">Ảnh hiện trạng nhà</label>
-                        <i class="fa-solid fa-camera upload-icon"></i>
-                        <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
-                        <input type="file" id="file-upload-current" name="media_current[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('current', this)">
-                        <div id="media-preview-container-current" class="upload-preview-container"></div>
+                    <div class="upload-slot">
+                        <div class="form-section-title">Ảnh hiện trạng nhà</div>
+                        <div class="upload-box" onclick="document.getElementById('file-upload-current').click()">
+                            <i class="fa-solid fa-camera upload-icon"></i>
+                            <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                            <input type="file" id="file-upload-current" name="media_current[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('current', this)">
+                        </div>
+                        <div id="media-preview-container-current" class="upload-preview-container">
+                            <?php if (!empty($media_current)): ?>
+                                <?php foreach ($media_current as $m): 
+                                    $path = BASE_URL . '/' . ltrim($m['media_path'] ?? $m['path'], '/');
+                                ?>
+                                    <div class="preview-item">
+                                        <img src="<?= htmlspecialchars($path) ?>">
+                                        </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <div class="upload-slot" onclick="document.getElementById('file-upload-contract').click()">
-                        <label class="upload-slot-title">Ảnh HĐ trích thưởng</label>
-                        <i class="fa-solid fa-camera upload-icon"></i>
-                        <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
-                        <input type="file" id="file-upload-contract" name="media_contract[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('contract', this)">
-                        <div id="media-preview-container-contract" class="upload-preview-container"></div>
+
+                    <div class="upload-slot">
+                        <div class="form-section-title">Ảnh HĐ trích thưởng</div>
+                        <div class="upload-box" onclick="document.getElementById('file-upload-contract').click()">
+                            <i class="fa-solid fa-camera upload-icon"></i>
+                            <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                            <input type="file" id="file-upload-contract" name="media_contract[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('contract', this)">
+                        </div>
+                        <div id="media-preview-container-contract" class="upload-preview-container">
+                             <?php if (!empty($media_contract)): ?>
+                                <?php foreach ($media_contract as $m): 
+                                    $path = BASE_URL . '/' . ltrim($m['media_path'] ?? $m['path'], '/');
+                                ?>
+                                    <div class="preview-item">
+                                        <img src="<?= htmlspecialchars($path) ?>">
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 
@@ -150,6 +182,7 @@
                 <button type="submit" class="btn-submit-blue">LƯU THAY ĐỔI</button>
             </div>
         </form>
+
         <div id="bottom-nav-container">
             <?php require_once __DIR__ . '/layouts/bottom-nav.php'; ?>
         </div>
@@ -157,9 +190,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Toggle Mã số sổ
             const phapLySelect = document.getElementById('phap_ly_select');
             const maSoGroup = document.getElementById('ma-so-so-group');
-
             if (phapLySelect) {
                 phapLySelect.addEventListener('change', function() {
                     if (this.value === 'co_so') {
@@ -170,6 +203,39 @@
                 });
             }
         });
+
+        // Hàm preview ảnh (giống trang đăng tin)
+        function previewMediaSlot(slot, input) {
+            if (!input) return;
+            const maxFiles = 12;
+            const newFiles = Array.from(input.files || []);
+            const key = '_selectedMedia_' + slot;
+            
+            // Reset mảng file khi chọn mới (hoặc có thể nối thêm tùy logic)
+            window[key] = newFiles; 
+
+            const container = document.getElementById('media-preview-container-' + slot);
+            if (!container) return;
+            
+            // Xóa ảnh cũ trong preview (nếu muốn thay thế hoàn toàn)
+            // container.innerHTML = ''; 
+
+            newFiles.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'preview-item';
+
+                    const mediaElement = (file.type && file.type.startsWith('video/')) ? document.createElement('video') : document.createElement('img');
+                    mediaElement.src = e.target.result;
+                    if (file.type && file.type.startsWith('video/')) mediaElement.controls = true;
+
+                    wrapper.appendChild(mediaElement);
+                    container.appendChild(wrapper);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
     </script>
 </body>
 
