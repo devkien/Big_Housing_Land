@@ -13,9 +13,9 @@
 <body>
     <div class="app-container" style="background-color: #f5f7fa;">
 
-        <header class="simple-blue-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <header class="simple-blue-header" style="display: flex; align-items: center; justify-content: space-between; background-color: #0044cc;">
             <a href="<?= BASE_URL ?>/home" style="color: white; font-size: 18px;"><i class="fa-solid fa-chevron-left"></i></a>
-            <div style="flex: 1; text-align: center;">Thông tin nội bộ</div>
+            <div style="flex: 1; text-align: center; color: white;">Thông tin nội bộ</div>
             <div style="display: flex; align-items: center; gap: 20px;"></div>
         </header>
 
