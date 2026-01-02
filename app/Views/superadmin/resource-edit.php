@@ -118,12 +118,22 @@
                     <textarea name="mo_ta" class="form-textarea" placeholder="Thêm mô tả:"><?= htmlspecialchars($property['mo_ta'] ?? '') ?></textarea>
                     <div class="char-counter">0/1500 ký tự</div>
                 </div>
-                <div class="upload-box" onclick="document.getElementById('file-upload').click()">
-                    <i class="fa-solid fa-camera upload-icon"></i>
-                    <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
-                    <input type="file" id="file-upload" name="media[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMedia(this)">
+                <div class="upload-slots-row">
+                    <div class="upload-slot" onclick="document.getElementById('file-upload-current').click()">
+                        <label class="upload-slot-title">Ảnh hiện trạng nhà</label>
+                        <i class="fa-solid fa-camera upload-icon"></i>
+                        <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                        <input type="file" id="file-upload-current" name="media_current[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('current', this)">
+                        <div id="media-preview-container-current" class="upload-preview-container"></div>
+                    </div>
+                    <div class="upload-slot" onclick="document.getElementById('file-upload-contract').click()">
+                        <label class="upload-slot-title">Ảnh HĐ trích thưởng</label>
+                        <i class="fa-solid fa-camera upload-icon"></i>
+                        <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                        <input type="file" id="file-upload-contract" name="media_contract[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('contract', this)">
+                        <div id="media-preview-container-contract" class="upload-preview-container"></div>
+                    </div>
                 </div>
-                <div id="media-preview-container" style="display: flex; gap: 10px; padding: 0 15px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; margin-bottom: 15px;"></div>
 
                 <div class="form-group">
                     <label>Trạng thái</label>

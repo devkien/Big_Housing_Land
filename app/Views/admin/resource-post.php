@@ -33,29 +33,29 @@
                     <?php require_once __DIR__ . '/../partials/alert.php'; ?>
                 </div>
 
-              <div class="form-section-title">Người đăng</div>
+                <div class="form-section-title">Người đăng</div>
                 <div class="form-group">
                     <?php $currentName = \Auth::user()['ho_ten'] ?? ''; ?>
                     <input type="text" name="ho_ten" class="form-input focus-blue" value="<?= htmlspecialchars($currentName ?: 'Họ tên đầu chủ', ENT_QUOTES, 'UTF-8') ?>" <?= $currentName ? 'readonly' : '' ?>>
                 </div>
 
                 <div class="form-group">
-                    <?php 
-                        $currentUser = \Auth::user();
-                        $phongBanRaw = $currentUser['phong_ban'] ?? '';
-                        
-                        // Map mã phòng ban sang tên hiển thị (nếu cần đẹp hơn)
-                        $mapPB = [
-                            'thien_chien' => 'Thiện Chiến',
-                            'hung_phat' => 'Hùng Phát',
-                            'tinh_nhue' => 'Tinh Nhuệ',
-                            'admin' => 'Ban Quản Trị'
-                        ];
-                        $phongBanDisplay = $mapPB[$phongBanRaw] ?? $phongBanRaw; 
-                        if (empty($phongBanDisplay)) $phongBanDisplay = 'Chưa cập nhật phòng ban';
+                    <?php
+                    $currentUser = \Auth::user();
+                    $phongBanRaw = $currentUser['phong_ban'] ?? '';
+
+                    // Map mã phòng ban sang tên hiển thị (nếu cần đẹp hơn)
+                    $mapPB = [
+                        'thien_chien' => 'Thiện Chiến',
+                        'hung_phat' => 'Hùng Phát',
+                        'tinh_nhue' => 'Tinh Nhuệ',
+                        'admin' => 'Ban Quản Trị'
+                    ];
+                    $phongBanDisplay = $mapPB[$phongBanRaw] ?? $phongBanRaw;
+                    if (empty($phongBanDisplay)) $phongBanDisplay = 'Chưa cập nhật phòng ban';
                     ?>
                     <input type="text" class="form-input" value="<?= htmlspecialchars($phongBanDisplay) ?>" readonly style="background-color: #e9ecef; cursor: not-allowed; color: #555;">
-                    
+
                     <input type="hidden" name="phong_ban" value="<?= htmlspecialchars($phongBanRaw) ?>">
                 </div>
                 <div class="form-section-title">Thông tin BĐS</div>
@@ -167,12 +167,27 @@
                     <textarea name="mo_ta" class="form-textarea" placeholder="Thêm mô tả:"></textarea>
                     <div class="char-counter">0/1500 ký tự</div>
                 </div>
-                <div class="upload-box" onclick="document.getElementById('file-upload').click()">
-                    <i class="fa-solid fa-camera upload-icon"></i>
-                    <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
-                    <input type="file" id="file-upload" name="media[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMedia(this)">
+                <div class="upload-slots-row">
+                    <div class="upload-slot">
+                        <div class="form-section-title">Ảnh hiện trạng nhà</div>
+                        <div class="upload-box" onclick="document.getElementById('file-upload-current').click()">
+                            <i class="fa-solid fa-camera upload-icon"></i>
+                            <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                            <input type="file" id="file-upload-current" name="media_current[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('current', this)">
+                        </div>
+                        <div id="media-preview-container-current" class="upload-preview-container"></div>
+                    </div>
+
+                    <div class="upload-slot">
+                        <div class="form-section-title">Ảnh HĐ trích thưởng</div>
+                        <div class="upload-box" onclick="document.getElementById('file-upload-contract').click()">
+                            <i class="fa-solid fa-camera upload-icon"></i>
+                            <div class="upload-text"><i class="fa-solid fa-plus"></i> Tải hình ảnh/video</div>
+                            <input type="file" id="file-upload-contract" name="media_contract[]" style="display: none;" accept="image/*,video/*" multiple onchange="previewMediaSlot('contract', this)">
+                        </div>
+                        <div id="media-preview-container-contract" class="upload-preview-container"></div>
+                    </div>
                 </div>
-                <div id="media-preview-container" style="display: flex; gap: 10px; padding: 0 15px; flex-wrap: wrap; margin-bottom: 15px;"></div>
 
                 <button type="submit" class="btn-submit-blue">ĐĂNG NGAY</button>
 
@@ -276,6 +291,67 @@
                 toggleMaSo();
             }
         })();
+    </script>
+    <script>
+        // Slot-based media preview (to support two separate upload slots)
+        function previewMediaSlot(slot, input) {
+            if (!input) return;
+            const maxFiles = 12;
+            const newFiles = Array.from(input.files || []);
+            const key = '_selectedMedia_' + slot;
+            window[key] = window[key] || [];
+            for (let f of newFiles) {
+                if (window[key].length >= maxFiles) break;
+                window[key].push(f);
+            }
+            const dt = new DataTransfer();
+            window[key].forEach(f => dt.items.add(f));
+            try {
+                input.files = dt.files;
+            } catch (e) {}
+            renderSelectedMediaSlot(slot);
+        }
+
+        function renderSelectedMediaSlot(slot) {
+            const container = document.getElementById('media-preview-container-' + slot);
+            const input = document.getElementById('file-upload-' + slot);
+            const key = '_selectedMedia_' + slot;
+            if (!container) return;
+            container.innerHTML = '';
+            if (!window[key] || window[key].length === 0) {
+                if (input) input.value = '';
+                return;
+            }
+
+            window[key].forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'preview-item';
+
+                    const mediaElement = (file.type && file.type.startsWith('video/')) ? document.createElement('video') : document.createElement('img');
+                    mediaElement.src = e.target.result;
+                    if (file.type && file.type.startsWith('video/')) mediaElement.controls = true;
+
+                    const btnDelete = document.createElement('button');
+                    btnDelete.type = 'button';
+                    btnDelete.className = 'preview-delete';
+                    btnDelete.innerHTML = '&times;';
+                    btnDelete.onclick = function() {
+                        window[key].splice(idx, 1);
+                        const dt = new DataTransfer();
+                        window[key].forEach(f => dt.items.add(f));
+                        if (input) input.files = dt.files;
+                        renderSelectedMediaSlot(slot);
+                    };
+
+                    wrapper.appendChild(mediaElement);
+                    wrapper.appendChild(btnDelete);
+                    container.appendChild(wrapper);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
     </script>
 
 </body>

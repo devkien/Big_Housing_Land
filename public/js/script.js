@@ -1379,6 +1379,66 @@ function previewMedia(input) {
     renderSelectedMedia();
 }
 
+// Support slot-based uploads: 'current' and 'contract' or any slot id
+function previewMediaSlot(slot, input) {
+    if (!input) return;
+    const maxFiles = 12;
+    const newFiles = Array.from(input.files || []);
+    const key = '_selectedMedia_' + slot;
+    window[key] = window[key] || [];
+    for (let f of newFiles) {
+        if (window[key].length >= maxFiles) break;
+        window[key].push(f);
+    }
+
+    const dt = new DataTransfer();
+    window[key].forEach(f => dt.items.add(f));
+    try { input.files = dt.files; } catch (e) {}
+
+    renderSelectedMediaSlot(slot);
+}
+
+function renderSelectedMediaSlot(slot) {
+    const container = document.getElementById('media-preview-container-' + slot);
+    const input = document.getElementById('file-upload-' + slot);
+    const key = '_selectedMedia_' + slot;
+    if (!container) return;
+    container.innerHTML = '';
+    if (!window[key] || window[key].length === 0) {
+        if (input) input.value = '';
+        return;
+    }
+
+    window[key].forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'preview-item';
+
+            const mediaElement = (file.type && file.type.startsWith('video/')) ? document.createElement('video') : document.createElement('img');
+            mediaElement.src = e.target.result;
+            if (file.type && file.type.startsWith('video/')) mediaElement.controls = true;
+
+            const btnDelete = document.createElement('button');
+            btnDelete.type = 'button';
+            btnDelete.className = 'preview-delete';
+            btnDelete.innerHTML = '&times;';
+            btnDelete.onclick = function () {
+                window[key].splice(idx, 1);
+                const dt = new DataTransfer();
+                window[key].forEach(f => dt.items.add(f));
+                if (input) input.files = dt.files;
+                renderSelectedMediaSlot(slot);
+            };
+
+            wrapper.appendChild(mediaElement);
+            wrapper.appendChild(btnDelete);
+            container.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // Initialize CKEditor only if the script is loaded and the textarea exists
 if (typeof ClassicEditor !== 'undefined' && document.querySelector('#editor-content')) {
     ClassicEditor
