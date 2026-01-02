@@ -36,7 +36,7 @@
         </header>
 
         <div class="tabs-container">
-            <button class="tab-btn active">Kho nhà cho thuê</button>
+                <button class="tab-btn active">Kho nhà cho thuê</button>
         </div>
 
         <div class="toolbar-section">
@@ -49,6 +49,8 @@
                 <thead>
                     <tr>
                         <th style="padding-left:15px; width: 60px;">LƯU</th>
+
+                        <th style="width: 80px; text-align: center;">HÀNH ĐỘNG</th>
 
                         <th style="width: 100px;">THỜI GIAN</th>
 
@@ -87,7 +89,7 @@
                     if (empty($properties)) :
                     ?>
                         <tr>
-                            <td colspan="18" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
+                            <td colspan="19" style="text-align:center; padding:20px;">Không tìm thấy tài nguyên nào.</td>
                         </tr>
                         <?php else :
                         foreach ($properties as $p) :
@@ -102,7 +104,8 @@
                             }
                             $code = htmlspecialchars($p['ma_hien_thi'] ?? '');
                             $created = !empty($p['created_at']) ? date('d/m/Y', strtotime($p['created_at'])) : '';
-                            $status = $statusMap[$p['trang_thai'] ?? ''] ?? ($p['trang_thai'] ?? '');
+                            $statusKey = $p['trang_thai'] ?? '';
+                            $status = $statusMap[$statusKey] ?? ($statusKey ?: '');
                             $address = trim($p['dia_chi_chi_tiet'] ?? '');
                             if ($address === '') {
                                 $parts = array_filter([$p['tinh_thanh'] ?? '', $p['quan_huyen'] ?? '', $p['xa_phuong'] ?? '']);
@@ -137,6 +140,10 @@
                                     <i class="<?= $inCount > 0 ? 'fa-solid' : 'fa-regular' ?> fa-bookmark icon-save" style="<?= $inCount > 0 ? 'color:#ffcc00' : '' ?>" title="<?= $inCount > 0 ? 'Đã lưu (' . $inCount . ')' : 'Chưa lưu' ?>"></i>
                                 </td>
 
+                                <td style="text-align: center;">
+                                    <i class="fa-regular fa-pen-to-square icon-note" data-status="<?= $statusKey ?>" style="cursor: pointer; color: #0044cc; font-size: 16px;" title="Cập nhật trạng thái"></i>
+                                </td>
+
                                 <td><?= $created ?></td>
 
                                 <td style="cursor:pointer; color:#0b66ff; font-weight:bold;" onclick="window.location.href='<?= BASE_URL ?>/admin/detail?id=<?= htmlspecialchars($p['id']) ?>'">
@@ -154,7 +161,6 @@
                                 <td><?= $so_tang !== null ? (int)$so_tang : '' ?></td>
                                 <td style="text-align:right; padding-right:15px;"><?= htmlspecialchars($gia_chao_fmt) ?></td>
 
-                                <?php $statusKey = htmlspecialchars($p['trang_thai'] ?? ''); ?>
                                 <td><span class="status-badge strong <?= $statusKey ? 'status-badge--' . $statusKey : '' ?>"><?= htmlspecialchars($status) ?></span></td>
 
                                 <td style="text-align:right; padding-right:15px;"><?= $address ?></td>
@@ -471,7 +477,7 @@
                     var search = qs('#search-input').value;
                     var url = new URL(window.BASE_URL + '/admin/management-resource-rent', window.location.origin);
                     url.searchParams.set('page', '1');
-                    if (search) url.searchParams.set('q', search);
+                    if (search) url.searchParams.set('q', search); // Code cũ dùng 'search', code mới dùng 'q'
                     window.location.href = url.toString();
                 });
             }

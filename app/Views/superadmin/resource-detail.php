@@ -37,6 +37,22 @@
                 }
                 $statusMap = ['ban_manh' => 'Bán mạnh', 'tam_dung_ban' => 'Tạm dừng', 'dung_ban' => 'Dừng bán', 'da_ban' => 'Đã bán', 'tang_chao' => 'Tăng chào', 'ha_chao' => 'Hạ chào'];
                 $statusLabel = $statusMap[$property['trang_thai'] ?? ''] ?? 'Đang bán';
+                
+                // --- Mới thêm: Map trạng thái xét duyệt ---
+                $approvalMap = [
+                    'cho_duyet' => 'Chờ duyệt',
+                    'da_duyet'  => 'Đã duyệt',
+                    'tu_choi'   => 'Từ chối'
+                ];
+                $approvalStatus = $property['tinh_trang_duyet'] ?? 'cho_duyet';
+                $approvalLabel = $approvalMap[$approvalStatus] ?? 'Chờ duyệt';
+                
+                // Chọn màu cho trạng thái xét duyệt
+                $approvalColor = '#f0ad4e'; // Màu cam cho chờ duyệt
+                if ($approvalStatus === 'da_duyet') $approvalColor = '#5cb85c'; // Xanh lá
+                elseif ($approvalStatus === 'tu_choi') $approvalColor = '#d9534f'; // Đỏ
+                // ------------------------------------------
+
                 $userName = $property['ho_ten'] ?? '---';
                 $userPhoneRaw = $property['user_phone'] ?? $property['so_dien_thoai'] ?? '';
                 $phoneDigits = $userPhoneRaw ? preg_replace('/[^0-9+]/', '', $userPhoneRaw) : '';
@@ -77,6 +93,12 @@
                     </div>
 
                     <div class="specs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; font-size: 14px;">
+                        
+                        <div style="grid-column: span 2; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 5px;">
+                            <i class="fa-solid fa-clipboard-check" style="color: <?= $approvalColor ?>; width: 20px;"></i> 
+                            <strong>Xét duyệt tin:</strong> 
+                            <span style="color: <?= $approvalColor ?>; font-weight: bold;"><?= htmlspecialchars($approvalLabel) ?></span>
+                        </div>
                         <div><i class="fa-solid fa-ruler-combined" style="color: #666; width: 20px;"></i> <strong>Diện tích:</strong> <?= htmlspecialchars($property['dien_tich'] ?? '') ?> <?= htmlspecialchars($property['don_vi_dien_tich'] ?? 'm²') ?></div>
                         <div><i class="fa-solid fa-arrows-left-right" style="color: #666; width: 20px;"></i> <strong>Mặt tiền:</strong> <?= htmlspecialchars($property['chieu_rong'] ?? '') ?> m</div>
                         <div><i class="fa-solid fa-arrows-up-down" style="color: #666; width: 20px;"></i> <strong>Chiều dài:</strong> <?= htmlspecialchars($property['chieu_dai'] ?? '') ?> m</div>
@@ -130,7 +152,7 @@
                         if (!empty($property['xa_phuong'])) {
                             $addrParts[] = $property['xa_phuong'];
                         }
-                        // 3. Quận / Huyện (Nếu bạn có lưu Slug/ID thì cần map tên, ở đây giả sử lưu tên hoặc hiển thị trực tiếp)
+                        // 3. Quận / Huyện
                         if (!empty($property['quan_huyen'])) {
                             $addrParts[] = $property['quan_huyen'];
                         }
