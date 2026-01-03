@@ -166,8 +166,9 @@
                                 $mediaPath = $m['media_path'] ?? $m['path'] ?? '';
                                 if (strpos($mediaPath, 'http') !== 0) $mediaPath = BASE_URL . '/' . ltrim($mediaPath, '/');
                             ?>
-                                <img src="<?= htmlspecialchars($mediaPath) ?>" class="post-image-large" style="margin-bottom: 10px; border-radius: 8px;">
-                            <?php endforeach; ?>
+                               <img src="<?= htmlspecialchars($mediaPath) ?>" 
+                                class="post-image-large" 
+                                style="max-width: 100%; height: auto; display: block; margin: 0 auto 10px auto; border-radius: 8px;">                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </article>
